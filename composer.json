@@ -13,7 +13,6 @@
   "require": {
     "php": ">=7.1",
     "ext-json": "*",
-    "zoujingli/think-install": "^1.0",
     "zoujingli/think-plugs-admin": "^1.0||dev-master",
     "zoujingli/think-plugs-account": "^1.0||dev-master"
   },
