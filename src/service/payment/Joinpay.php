@@ -16,20 +16,26 @@
 
 declare (strict_types=1);
 
-namespace plugin\payment\support\payment;
+namespace plugin\payment\service\payment;
 
-use plugin\payment\support\contract\PaymentAbstract;
-use plugin\payment\support\contract\PaymentInterface;
+use plugin\account\service\contract\AccountInterface;
+use plugin\payment\service\contract\PaymentAbstract;
+use plugin\payment\service\contract\PaymentInterface;
+use plugin\payment\service\Payment;
 use think\admin\Exception;
 use think\admin\extend\HttpExtend;
 
 /**
  * 汇聚支付通道
  * Class Joinpay
- * @package plugin\payment\support\payment
+ * @package plugin\payment\service\payment
  */
 class Joinpay extends PaymentAbstract
 {
+    const tradeTypes = [
+        Payment::JOINPAY_GZH => 'WEIXIN_GZH',
+        Payment::JOINPAY_XCX => 'WEIXIN_XCX'
+    ];
 
     /**
      * 初始化支付通道
@@ -46,9 +52,9 @@ class Joinpay extends PaymentAbstract
 
     /**
      * 创建订单支付参数
-     * @param string $openid 用户OPENID
-     * @param string $orderNo 交易订单单号
-     * @param string $amount 交易订单金额（元）
+     * @param AccountInterface $account 用户OPENID
+     * @param string $orderno 交易订单单号
+     * @param string $payAmount 交易订单金额（元）
      * @param string $payTitle 交易订单名称
      * @param string $payRemark 订单订单描述
      * @param string $payReturn 完成回跳地址
@@ -56,14 +62,14 @@ class Joinpay extends PaymentAbstract
      * @return array
      * @throws Exception
      */
-    public function create(string $openid, string $orderNo, string $amount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderno, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
         try {
             $data = [
                 'p0_Version'         => '1.0',
                 'p1_MerchantNo'      => $this->config['mchid'],
-                'p2_OrderNo'         => $orderNo,
-                'p3_Amount'          => $amount,
+                'p2_OrderNo'         => $orderno,
+                'p3_Amount'          => $payAmount,
                 'p4_Cur'             => '1',
                 'p5_ProductName'     => $payTitle,
                 'p6_ProductDesc'     => $payRemark,
@@ -77,7 +83,7 @@ class Joinpay extends PaymentAbstract
             $result = $this->_doReuest('uniPayApi.action', $data);
             if (isset($result['ra_Code']) && intval($result['ra_Code']) === 100) {
                 // 创建支付记录
-                $this->createAction($orderNo, $payTitle, $amount);
+                $this->createAction($orderno, $payTitle, $payAmount);
                 // 返回支付参数
                 return json_decode($result['rc_Result'], true);
             } elseif (isset($result['rb_CodeMsg'])) {
@@ -94,12 +100,12 @@ class Joinpay extends PaymentAbstract
 
     /**
      * 查询订单数据
-     * @param string $orderNo
+     * @param string $orderno
      * @return array
      */
-    public function query(string $orderNo): array
+    public function query(string $orderno): array
     {
-        return $this->_doReuest('queryOrder.action', ['p1_MerchantNo' => $this->config['mchid'], 'p2_OrderNo' => $orderNo]);
+        return $this->_doReuest('queryOrder.action', ['p1_MerchantNo' => $this->config['mchid'], 'p2_OrderNo' => $orderno]);
     }
 
     /**

@@ -16,24 +16,24 @@
 
 declare (strict_types=1);
 
-namespace plugin\payment\support\contract;
+namespace plugin\payment\service\contract;
 
-use plugin\account\service\Account;
+use plugin\account\service\contract\AccountInterface;
 
 /**
  * 支付通道接口类
  * @class PaymentInterface
- * @package plugin\payment\support\contract
+ * @package plugin\payment\service\contract
  */
 interface PaymentInterface
 {
 
     /**
      * 主动查询订单支付
-     * @param string $orderNo
+     * @param string $orderno
      * @return array
      */
-    public function query(string $orderNo): array;
+    public function query(string $orderno): array;
 
     /**
      * 支付通知处理
@@ -43,14 +43,14 @@ interface PaymentInterface
 
     /**
      * 创建支付订单
-     * @param Account $account 发起人账号
-     * @param string $orderNo 交易订单单号
-     * @param string $amount 交易订单金额（元）
+     * @param AccountInterface $account 支付账号
+     * @param string $orderno 交易订单单号
+     * @param string $payAmount 交易订单金额（元）
      * @param string $payTitle 交易订单名称
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
      * @return array
      */
-    public function create(Account $account, string $orderNo, string $amount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array;
+    public function create(AccountInterface $account, string $orderno, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array;
 }

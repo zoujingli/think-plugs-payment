@@ -21,12 +21,6 @@
       "plugin\\payment\\": "src"
     }
   },
-  "repositories": {
-    "ThinkPluginAccount": {
-      "type": "path",
-      "url": "../think-plugs-account"
-    }
-  },
   "extra": {
     "think": {
       "services": [

@@ -16,17 +16,17 @@
 
 declare (strict_types=1);
 
-namespace plugin\payment\support\contract;
+namespace plugin\payment\service\contract;
 
 use plugin\payment\model\PluginPaymentAction;
-use plugin\payment\support\Payment;
+use plugin\payment\service\Payment;
 use think\admin\Exception;
 use think\App;
 
 /**
  * 支付通道抽像类
  * @class PaymentAbstract
- * @package plugin\payment\support\contract
+ * @package plugin\payment\service\contract
  */
 abstract class PaymentAbstract implements PaymentInterface
 {
@@ -114,17 +114,18 @@ abstract class PaymentAbstract implements PaymentInterface
 
     /**
      * 更新支付记录并更新订单
-     * @param string $orderNo 商户订单单号
+     * @param string $orderno 商户订单单号
      * @param string $payTrade 平台交易单号
      * @param string $payAmount 实际到账金额
      * @param string $payRemark 平台支付备注
      * @return boolean
      */
-    protected function updateAction(string $orderNo, string $payTrade, string $payAmount, string $payRemark = '在线支付'): bool
+    protected function updateAction(string $orderno, string $payTrade, string $payAmount, string $payRemark = '在线支付'): bool
+
     {
         // 更新支付记录
         PluginPaymentAction::mUpdate([
-            'order_no'         => $orderNo,
+            'order_no'         => $orderno,
             'payment_code'     => $this->cfgCode,
             'payment_type'     => $this->cfgType,
             'payment_trade'    => $payTrade,
@@ -136,7 +137,7 @@ abstract class PaymentAbstract implements PaymentInterface
             'payment_type' => $this->cfgType,
         ]);
         // 更新记录状态
-        return $this->updateOrder($orderNo, $payTrade, $payAmount, $payRemark);
+        return $this->updateOrder($orderno, $payTrade, $payAmount, $payRemark);
     }
 
     /**

@@ -16,17 +16,19 @@
 
 declare (strict_types=1);
 
-namespace plugin\payment\support\payment;
+namespace plugin\payment\service\payment;
 
-use plugin\payment\support\contract\PaymentAbstract;
-use plugin\payment\support\contract\PaymentInterface;
+use plugin\account\service\contract\AccountInterface;
+use plugin\payment\service\contract\PaymentAbstract;
+use plugin\payment\service\contract\PaymentInterface;
+use plugin\payment\service\Payment;
 use think\admin\Exception;
 use WePay\Order;
 
 /**
  * 微信商户支付通道
  * Class Wechat
- * @package plugin\payment\support\payment
+ * @package plugin\payment\service\payment
  */
 class Wechat extends PaymentAbstract
 {
@@ -35,6 +37,14 @@ class Wechat extends PaymentAbstract
      * @var Order
      */
     protected $payment;
+
+    const tradeTypes = [
+        Payment::WECHAT_APP => 'APP',
+        Payment::WECHAT_WAP => 'MWEB',
+        Payment::WECHAT_GZH => 'JSAPI',
+        Payment::WECHAT_XCX => 'JSAPI',
+        Payment::WECHAT_QRC => 'NATIVE',
+    ];
 
     /**
      * 初始化支付通道
@@ -52,9 +62,9 @@ class Wechat extends PaymentAbstract
 
     /**
      * 创建订单支付参数
-     * @param string $openid 用户OPENID
-     * @param string $orderNo 交易订单单号
-     * @param string $amount 交易订单金额（元）
+     * @param AccountInterface $account 用户OPENID
+     * @param string $orderno 交易订单单号
+     * @param string $payAmount 交易订单金额（元）
      * @param string $payTitle 交易订单名称
      * @param string $payRemark 订单订单描述
      * @param string $payReturn 完成回跳地址
@@ -62,7 +72,7 @@ class Wechat extends PaymentAbstract
      * @return array
      * @throws Exception
      */
-    public function create(string $openid, string $orderNo, string $amount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderno, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
         try {
             $body = empty($payRemark) ? $payTitle : ($payTitle . '-' . $payRemark);
@@ -70,9 +80,9 @@ class Wechat extends PaymentAbstract
                 'body'             => $body,
                 'openid'           => $openid,
                 'attach'           => $this->cfgCode,
-                'out_trade_no'     => $orderNo,
+                'out_trade_no'     => $orderno,
                 'trade_type'       => $this->tradeType ?: '',
-                'total_fee'        => $amount * 100,
+                'total_fee'        => $payAmount * 100,
                 'notify_url'       => sysuri("@data/api.notify/wxpay/scene/order/param/{$this->cfgCode}", [], false, true),
                 'spbill_create_ip' => $this->app->request->ip(),
             ];
@@ -80,7 +90,7 @@ class Wechat extends PaymentAbstract
             $info = $this->payment->create($data);
             if ($info['return_code'] === 'SUCCESS' && $info['result_code'] === 'SUCCESS') {
                 // 创建支付记录
-                $this->createAction($orderNo, $payTitle, $amount);
+                $this->createAction($orderno, $payTitle, $payAmount);
                 // 返回支付参数
                 return $this->payment->jsapiParams($info['prepay_id']);
             }
@@ -94,14 +104,14 @@ class Wechat extends PaymentAbstract
 
     /**
      * 查询微信支付订单
-     * @param string $orderNo 订单单号
+     * @param string $orderno 订单单号
      * @return array
      * @throws \WeChat\Exceptions\InvalidResponseException
      * @throws \WeChat\Exceptions\LocalCacheException
      */
-    public function query(string $orderNo): array
+    public function query(string $orderno): array
     {
-        $result = $this->payment->query(['out_trade_no' => $orderNo]);
+        $result = $this->payment->query(['out_trade_no' => $orderno]);
         if (isset($result['return_code']) && isset($result['result_code']) && isset($result['attach'])) {
             if ($result['return_code'] === 'SUCCESS' && $result['result_code'] === 'SUCCESS') {
                 $this->updateAction($result['out_trade_no'], $result['cash_fee'] / 100, $result['transaction_id']);

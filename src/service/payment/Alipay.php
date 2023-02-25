@@ -16,15 +16,15 @@
 
 declare (strict_types=1);
 
-namespace plugin\payment\support\payment;
+namespace plugin\payment\service\payment;
 
 use AliPay\App;
 use AliPay\Wap;
 use AliPay\Web;
-use plugin\account\service\Account;
-use plugin\payment\support\contract\PaymentAbstract;
-use plugin\payment\support\contract\PaymentInterface;
-use plugin\payment\support\Payment;
+use plugin\account\service\contract\AccountInterface;
+use plugin\payment\service\contract\PaymentAbstract;
+use plugin\payment\service\contract\PaymentInterface;
+use plugin\payment\service\Payment;
 use think\admin\Exception;
 use WeChat\Exceptions\InvalidResponseException;
 use WeChat\Exceptions\LocalCacheException;
@@ -32,7 +32,7 @@ use WeChat\Exceptions\LocalCacheException;
 /**
  * 支付宝支付通道
  * Class Alipay
- * @package plugin\payment\support\payment
+ * @package plugin\payment\service\payment
  */
 class Alipay extends PaymentAbstract
 {
@@ -63,9 +63,9 @@ class Alipay extends PaymentAbstract
 
     /**
      * 创建订单支付参数
-     * @param Account $account 用户账号实例
-     * @param string $orderNo 交易订单单号
-     * @param string $amount 交易订单金额（元）
+     * @param AccountInterface $account 用户账号实例
+     * @param string $orderno 交易订单单号
+     * @param string $payAmount 交易订单金额（元）
      * @param string $payTitle 交易订单名称
      * @param string $payRemark 订单订单描述
      * @param string $payReturn 完成回跳地址
@@ -73,7 +73,7 @@ class Alipay extends PaymentAbstract
      * @return array
      * @throws Exception
      */
-    public function create(Account $account, string $orderNo, string $amount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderno, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
         try {
             $this->config['notify_url'] = sysuri("@data/api.notify/alipay/scene/order/param/{$this->cfgCode}", [], false, true);
@@ -93,11 +93,11 @@ class Alipay extends PaymentAbstract
             } else {
                 throw new Exception("支付类型[{$this->tradeType}]暂时不支持！");
             }
-            $data = ['out_trade_no' => $orderNo, 'total_amount' => $amount, 'subject' => $payTitle];
+            $data = ['out_trade_no' => $orderno, 'total_amount' => $payAmount, 'subject' => $payTitle];
             if (!empty($payRemark)) $data['body'] = $payRemark;
             $result = $payment->apply($data);
             // 创建支付记录
-            $this->createAction($orderNo, $payTitle, $amount);
+            $this->createAction($orderno, $payTitle, $payAmount);
             // 返回支付参数
             return ['result' => $result];
         } catch (Exception $exception) {
@@ -128,14 +128,14 @@ class Alipay extends PaymentAbstract
 
     /**
      * 查询订单数据
-     * @param string $orderNo
+     * @param string $orderno
      * @return array
      * @throws InvalidResponseException
      * @throws LocalCacheException
      */
-    public function query(string $orderNo): array
+    public function query(string $orderno): array
     {
-        return App::instance($this->config)->query($orderNo);
+        return App::instance($this->config)->query($orderno);
     }
 
     /**
