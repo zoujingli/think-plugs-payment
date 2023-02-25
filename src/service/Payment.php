@@ -221,7 +221,7 @@ abstract class Payment
         if (class_exists($class) && in_array(PaymentInterface::class, class_implements($class))) {
             self::$types[$type] = ['name' => $name, 'class' => $class, 'status' => 1, 'account' => $account];
         }
-        return self::$types;
+        return self::getTypeAll();
     }
 
     /**
@@ -260,21 +260,22 @@ abstract class Payment
      * 获取支付类型
      * @param ?int $status
      * @return array
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
      */
     public static function getTypeAll(?int $status = null): array
     {
-        $denys = sysdata('plugin.account.denys');
-        [$types, $binds] = [[], array_keys(Account::getTypes(1))];
-        foreach (self::$types as $k => &$v) {
-            $v['status'] = intval(!in_array($k, $denys));
-            if (is_null($status) || $status == $v['status']) {
-                if (array_intersect($v['account'], $binds)) $types[$k] = $v;
+        try {
+            $denys = sysdata('plugin.account.denys');
+            [$types, $binds] = [[], array_keys(Account::getTypes(1))];
+            foreach (self::$types as $type => &$item) {
+                $item['status'] = intval(!in_array($type, $denys));
+                if (is_null($status) || $status == $item['status']) {
+                    if (array_intersect($item['account'], $binds)) $types[$type] = $item;
+                }
             }
+            return $types;
+        } catch (\Exception $exception) {
+            return [];
         }
-        return $types;
     }
 
     /**
@@ -285,7 +286,7 @@ abstract class Payment
     public static function getTypeByChannel(string $account): array
     {
         $types = [];
-        foreach (self::$types as $type => $attr) {
+        foreach (self::getTypeAll() as $type => $attr) {
             if ($attr['status'] > 0 && in_array($account, $attr['account'])) {
                 $types[$type] = $attr['name'];
             }
