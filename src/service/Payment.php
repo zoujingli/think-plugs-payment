@@ -226,13 +226,14 @@ abstract class Payment
 
     /**
      * 获取支付类型
-     * @param array $types 默认返回支付
+     * @param ?int $status
      * @return array
      */
-    public static function getTypeAll(array $types = []): array
+    public static function getTypeAll(?int $status = null): array
     {
+        $types = [];
         $binds = array_keys(Account::getTypes(1));
-        foreach (self::$types as $k => $v) if (isset($v['bind'])) {
+        foreach (self::$types as $k => $v) if (is_null($status) || $status == $v['status']) {
             if (array_intersect($v['account'], $binds)) $types[$k] = $v;
         }
         return $types;

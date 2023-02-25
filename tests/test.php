@@ -23,6 +23,10 @@ Db::setConfig([
     ],
 ]);
 
-// 获取此通道支持的支付类型
+// 获取指定接口支持的支付类型
 $all = Payment::getTypeByChannel(Account::WXAPP);
+dump($all);
+
+// 获取全部可用的对付
+$all = Payment::getTypeAll();
 dump($all);
