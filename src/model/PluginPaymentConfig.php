@@ -23,7 +23,7 @@ use think\admin\Model;
 /**
  * 用户支付参数模型
  * Class PluginPaymentConfig
- * @package app\data\model
+ * @package plugin\payment\model
  */
 class PluginPaymentConfig extends Model
 {

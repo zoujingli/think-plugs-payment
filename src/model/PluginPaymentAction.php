@@ -21,9 +21,9 @@ namespace plugin\payment\model;
 use think\admin\Model;
 
 /**
- * 用户支付模型
+ * 用户支付行为模型
  * Class PluginPaymentAction
- * @package app\data\model
+ * @package plugin\payment\model
  */
 class PluginPaymentAction extends Model
 {

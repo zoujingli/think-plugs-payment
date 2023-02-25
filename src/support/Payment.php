@@ -37,36 +37,36 @@ abstract class Payment
 {
 
     // 用户余额支付
-    const PAYMENT_NULLPAY = 'nullpay';
-    const PAYMENT_BALANCE = 'balance';
-    const PAYMENT_VOUCHER = 'voucher';
+    const NULLPAY = 'nullpay';
+    const BALANCE = 'balance';
+    const VOUCHER = 'voucher';
 
     // 汇聚支付参数
-    const PAYMENT_JOINPAY_GZH = 'joinpay_gzh';
-    const PAYMENT_JOINPAY_XCX = 'joinpay_xcx';
+    const JOINPAY_GZH = 'joinpay_gzh';
+    const JOINPAY_XCX = 'joinpay_xcx';
 
     // 微信商户支付
-    const PAYMENT_WECHAT_APP = 'wechat_app';
-    const PAYMENT_WECHAT_GZH = 'wechat_gzh';
-    const PAYMENT_WECHAT_XCX = 'wechat_xcx';
-    const PAYMENT_WECHAT_WAP = 'wechat_wap';
-    const PAYMENT_WECHAT_QRC = 'wechat_qrc';
+    const WECHAT_APP = 'wechat_app';
+    const WECHAT_GZH = 'wechat_gzh';
+    const WECHAT_XCX = 'wechat_xcx';
+    const WECHAT_WAP = 'wechat_wap';
+    const WECHAT_QRC = 'wechat_qrc';
 
     // 支付宝支付参数
-    const PAYMENT_ALIAPY_APP = 'alipay_app';
-    const PAYMENT_ALIPAY_WAP = 'alipay_wap';
-    const PAYMENT_ALIPAY_WEB = 'alipay_web';
+    const ALIAPY_APP = 'alipay_app';
+    const ALIPAY_WAP = 'alipay_wap';
+    const ALIPAY_WEB = 'alipay_web';
 
     // 支付通道配置，不需要的可以注释
     const types = [
         // 空支付，金额为零时自动完成支付
-        self::PAYMENT_NULLPAY     => [
+        self::NULLPAY     => [
             'type' => 'NULLPAY',
             'name' => '订单无需支付',
             'bind' => [],
         ],
         // 余额支付，使用账号余额完成支付
-        self::PAYMENT_BALANCE     => [
+        self::BALANCE     => [
             'type' => 'BALANCE',
             'name' => '账号余额支付',
             'bind' => [
@@ -79,7 +79,7 @@ abstract class Payment
             ],
         ],
         // 凭证支付，上传凭证后台审核支付
-        self::PAYMENT_VOUCHER     => [
+        self::VOUCHER     => [
             'type' => 'VOUCHER',
             'name' => '单据凭证支付',
             'bind' => [
@@ -92,54 +92,54 @@ abstract class Payment
             ],
         ],
         // 微信支付配置（不需要的直接注释）
-        self::PAYMENT_WECHAT_WAP  => [
+        self::WECHAT_WAP  => [
             'type' => 'MWEB',
             'name' => '微信WAP支付',
             'bind' => [Account::WAP],
         ],
-        self::PAYMENT_WECHAT_APP  => [
+        self::WECHAT_APP  => [
             'type' => 'APP',
             'name' => '微信APP支付',
             'bind' => [Account::IOSAPP, Account::ANDROID],
         ],
-        self::PAYMENT_WECHAT_XCX  => [
+        self::WECHAT_XCX  => [
             'type' => 'JSAPI',
             'name' => '微信小程序支付',
             'bind' => [Account::WXAPP],
         ],
-        self::PAYMENT_WECHAT_GZH  => [
+        self::WECHAT_GZH  => [
             'type' => 'JSAPI',
             'name' => '微信公众号支付',
             'bind' => [Account::WECHAT],
         ],
-        self::PAYMENT_WECHAT_QRC  => [
+        self::WECHAT_QRC  => [
             'type' => 'NATIVE',
             'name' => '微信二维码支付',
             'bind' => [Account::WEB],
         ],
         // 支付宝支持配置（不需要的直接注释）
-        self::PAYMENT_ALIPAY_WAP  => [
+        self::ALIPAY_WAP  => [
             'type' => '',
             'name' => '支付宝WAP支付',
             'bind' => [Account::WAP],
         ],
-        self::PAYMENT_ALIPAY_WEB  => [
+        self::ALIPAY_WEB  => [
             'type' => '',
             'name' => '支付宝WEB支付',
             'bind' => [Account::WEB],
         ],
-        self::PAYMENT_ALIAPY_APP  => [
+        self::ALIAPY_APP  => [
             'type' => '',
             'name' => '支付宝APP支付',
             'bind' => [Account::ANDROID, Account::IOSAPP],
         ],
         // 汇聚支持配置（不需要的直接注释）
-        self::PAYMENT_JOINPAY_XCX => [
+        self::JOINPAY_XCX => [
             'type' => 'WEIXIN_XCX',
             'name' => '汇聚小程序支付',
             'bind' => [Account::WXAPP],
         ],
-        self::PAYMENT_JOINPAY_GZH => [
+        self::JOINPAY_GZH => [
             'type' => 'WEIXIN_GZH',
             'name' => '汇聚公众号支付',
             'bind' => [Account::WECHAT],

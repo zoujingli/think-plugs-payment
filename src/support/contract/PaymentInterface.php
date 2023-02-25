@@ -18,6 +18,8 @@ declare (strict_types=1);
 
 namespace plugin\payment\support\contract;
 
+use plugin\account\service\Account;
+
 /**
  * 支付通道接口类
  * @class PaymentInterface
@@ -41,7 +43,7 @@ interface PaymentInterface
 
     /**
      * 创建支付订单
-     * @param string $openid 用户OPENID
+     * @param Account $account 发起人账号
      * @param string $orderNo 交易订单单号
      * @param string $amount 交易订单金额（元）
      * @param string $payTitle 交易订单名称
@@ -50,5 +52,5 @@ interface PaymentInterface
      * @param string $payImages 支付凭证图片
      * @return array
      */
-    public function create(string $openid, string $orderNo, string $amount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array;
+    public function create(Account $account, string $orderNo, string $amount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array;
 }

@@ -21,6 +21,7 @@ namespace plugin\payment\support\payment;
 use AliPay\App;
 use AliPay\Wap;
 use AliPay\Web;
+use plugin\account\service\Account;
 use plugin\payment\support\contract\PaymentAbstract;
 use plugin\payment\support\contract\PaymentInterface;
 use plugin\payment\support\Payment;
@@ -62,7 +63,7 @@ class Alipay extends PaymentAbstract
 
     /**
      * 创建订单支付参数
-     * @param string $openid 用户OPENID
+     * @param Account $account 用户账号实例
      * @param string $orderNo 交易订单单号
      * @param string $amount 交易订单金额（元）
      * @param string $payTitle 交易订单名称
@@ -72,22 +73,22 @@ class Alipay extends PaymentAbstract
      * @return array
      * @throws Exception
      */
-    public function create(string $openid, string $orderNo, string $amount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(Account $account, string $orderNo, string $amount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
         try {
             $this->config['notify_url'] = sysuri("@data/api.notify/alipay/scene/order/param/{$this->cfgCode}", [], false, true);
-            if (in_array($this->tradeType, [Payment::PAYMENT_ALIPAY_WAP, Payment::PAYMENT_ALIPAY_WEB])) {
+            if (in_array($this->tradeType, [Payment::ALIPAY_WAP, Payment::ALIPAY_WEB])) {
                 if (empty($payReturn)) {
                     throw new Exception('支付回跳地址不能为空！');
                 } else {
                     $this->config['return_url'] = $payReturn;
                 }
             }
-            if ($this->tradeType === Payment::PAYMENT_WECHAT_APP) {
+            if ($this->tradeType === Payment::WECHAT_APP) {
                 $payment = App::instance($this->config);
-            } elseif ($this->tradeType === Payment::PAYMENT_ALIPAY_WAP) {
+            } elseif ($this->tradeType === Payment::ALIPAY_WAP) {
                 $payment = Wap::instance($this->config);
-            } elseif ($this->tradeType === Payment::PAYMENT_ALIPAY_WEB) {
+            } elseif ($this->tradeType === Payment::ALIPAY_WEB) {
                 $payment = Web::instance($this->config);
             } else {
                 throw new Exception("支付类型[{$this->tradeType}]暂时不支持！");

@@ -18,6 +18,11 @@ declare (strict_types=1);
 
 namespace plugin\payment\support\contract;
 
+use plugin\payment\model\PluginPaymentAction;
+use plugin\payment\support\Payment;
+use think\admin\Exception;
+use think\App;
+
 /**
  * 支付通道抽像类
  * @class PaymentAbstract
@@ -98,7 +103,7 @@ abstract class PaymentAbstract implements PaymentInterface
      */
     protected function createAction(string $orderNo, string $payTitle, string $payAmount)
     {
-        DataUserPayment::mk()->insert([
+        PluginPaymentAction::mk()->insert([
             'payment_code' => $this->cfgCode,
             'payment_type' => $this->cfgType,
             'order_no'     => $orderNo,
@@ -118,7 +123,7 @@ abstract class PaymentAbstract implements PaymentInterface
     protected function updateAction(string $orderNo, string $payTrade, string $payAmount, string $payRemark = '在线支付'): bool
     {
         // 更新支付记录
-        DataUserPayment::mUpdate([
+        PluginPaymentAction::mUpdate([
             'order_no'         => $orderNo,
             'payment_code'     => $this->cfgCode,
             'payment_type'     => $this->cfgType,
@@ -149,7 +154,7 @@ abstract class PaymentAbstract implements PaymentInterface
         $order = ShopOrder::mk()->where($map)->findOrEmpty();
         if ($order->isEmpty()) return false;
         // 检查订单支付状态
-        if ($this->cfgType === Payment::PAYMENT_VOUCHER) {
+        if ($this->cfgType === Payment::VOUCHER) {
             $status = 3; # 凭证支付需要审核
         } elseif (empty($order['truck_type'])) {
             $status = 6; # 虚拟订单直接完成
