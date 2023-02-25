@@ -16,16 +16,24 @@
 
 declare (strict_types=1);
 
-namespace plugin\payment;
+namespace plugin\payment\model;
 
-use think\admin\Plugin;
+use think\admin\Model;
 
-class Service extends Plugin
+/**
+ * 用户支付参数模型
+ * Class PluginPaymentConfig
+ * @package app\data\model
+ */
+class PluginPaymentConfig extends Model
 {
-    protected $package = 'zoujingli/think-plugs-payment';
-
-    public static function menu(): array
+    /**
+     * 格式化创建时间
+     * @param string $value
+     * @return string
+     */
+    public function getCreateAtAttr(string $value): string
     {
-        return [];
+        return format_datetime($value);
     }
 }

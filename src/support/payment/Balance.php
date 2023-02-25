@@ -1,5 +1,6 @@
 <?php
 
+
 // +----------------------------------------------------------------------
 // | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
@@ -13,6 +14,8 @@
 // | gitee 代码仓库：https://gitee.com/zoujingli/think-plugs-payment
 // | github 代码仓库：https://github.com/zoujingli/think-plugs-payment
 // +----------------------------------------------------------------------
+
+declare (strict_types=1);
 
 namespace plugin\payment\support\payment;
 

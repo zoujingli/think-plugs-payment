@@ -16,16 +16,15 @@
 
 declare (strict_types=1);
 
-namespace plugin\payment;
+namespace plugin\payment\model;
 
-use think\admin\Plugin;
+use think\admin\Model;
 
-class Service extends Plugin
+/**
+ * 用户支付模型
+ * Class PluginPaymentAction
+ * @package app\data\model
+ */
+class PluginPaymentAction extends Model
 {
-    protected $package = 'zoujingli/think-plugs-payment';
-
-    public static function menu(): array
-    {
-        return [];
-    }
 }

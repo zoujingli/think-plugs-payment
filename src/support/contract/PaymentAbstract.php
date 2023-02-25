@@ -1,7 +1,7 @@
 <?php
 
 // +----------------------------------------------------------------------
-// | Shop-Demo for ThinkAdmin
+// | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
 // | 版权所有 2022~2023 Anyon <zoujingli@qq.com>
 // +----------------------------------------------------------------------
@@ -10,19 +10,13 @@
 // | 免责声明 ( https://thinkadmin.top/disclaimer )
 // | 会员免费 ( https://thinkadmin.top/vip-introduce )
 // +----------------------------------------------------------------------
-// | gitee 代码仓库：https://gitee.com/zoujingli/ThinkAdmin
-// | github 代码仓库：https://github.com/zoujingli/ThinkAdmin
+// | gitee 代码仓库：https://gitee.com/zoujingli/think-plugs-payment
+// | github 代码仓库：https://github.com/zoujingli/think-plugs-payment
 // +----------------------------------------------------------------------
 
 declare (strict_types=1);
 
 namespace plugin\payment\support\contract;
-
-use plugin\payment\model\DataUserPayment;
-use plugin\payment\model\ShopOrder;
-use plugin\payment\support\Payment;
-use think\admin\Exception;
-use think\App;
 
 /**
  * 支付通道抽像类

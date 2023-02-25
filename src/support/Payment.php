@@ -1,7 +1,7 @@
 <?php
 
 // +----------------------------------------------------------------------
-// | Shop-Demo for ThinkAdmin
+// | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
 // | 版权所有 2022~2023 Anyon <zoujingli@qq.com>
 // +----------------------------------------------------------------------
@@ -10,15 +10,15 @@
 // | 免责声明 ( https://thinkadmin.top/disclaimer )
 // | 会员免费 ( https://thinkadmin.top/vip-introduce )
 // +----------------------------------------------------------------------
-// | gitee 代码仓库：https://gitee.com/zoujingli/ThinkAdmin
-// | github 代码仓库：https://github.com/zoujingli/ThinkAdmin
+// | gitee 代码仓库：https://gitee.com/zoujingli/think-plugs-payment
+// | github 代码仓库：https://github.com/zoujingli/think-plugs-payment
 // +----------------------------------------------------------------------
 
 declare (strict_types=1);
 
 namespace plugin\payment\support;
 
-use plugin\payment\model\BaseUserPayment;
+use plugin\payment\model\PluginPaymentConfig;
 use plugin\payment\support\contract\PaymentInterface;
 use plugin\payment\support\payment\Alipay;
 use plugin\payment\support\payment\Balance;
@@ -70,12 +70,12 @@ abstract class Payment
             'type' => 'BALANCE',
             'name' => '账号余额支付',
             'bind' => [
-                Account::CHANNEL_WAP,
-                Account::CHANNEL_WEB,
-                Account::CHANNEL_WXAPP,
-                Account::CHANNEL_WECHAT,
-                Account::CHANNEL_IOSAPP,
-                Account::CHANNEL_ANDROID,
+                Account::WAP,
+                Account::WEB,
+                Account::WXAPP,
+                Account::WECHAT,
+                Account::IOSAPP,
+                Account::ANDROID,
             ],
         ],
         // 凭证支付，上传凭证后台审核支付
@@ -83,66 +83,66 @@ abstract class Payment
             'type' => 'VOUCHER',
             'name' => '单据凭证支付',
             'bind' => [
-                Account::CHANNEL_WAP,
-                Account::CHANNEL_WEB,
-                Account::CHANNEL_WXAPP,
-                Account::CHANNEL_WECHAT,
-                Account::CHANNEL_IOSAPP,
-                Account::CHANNEL_ANDROID,
+                Account::WAP,
+                Account::WEB,
+                Account::WXAPP,
+                Account::WECHAT,
+                Account::IOSAPP,
+                Account::ANDROID,
             ],
         ],
         // 微信支付配置（不需要的直接注释）
         self::PAYMENT_WECHAT_WAP  => [
             'type' => 'MWEB',
             'name' => '微信WAP支付',
-            'bind' => [Account::CHANNEL_WAP],
+            'bind' => [Account::WAP],
         ],
         self::PAYMENT_WECHAT_APP  => [
             'type' => 'APP',
             'name' => '微信APP支付',
-            'bind' => [Account::CHANNEL_IOSAPP, Account::CHANNEL_ANDROID],
+            'bind' => [Account::IOSAPP, Account::ANDROID],
         ],
         self::PAYMENT_WECHAT_XCX  => [
             'type' => 'JSAPI',
             'name' => '微信小程序支付',
-            'bind' => [Account::CHANNEL_WXAPP],
+            'bind' => [Account::WXAPP],
         ],
         self::PAYMENT_WECHAT_GZH  => [
             'type' => 'JSAPI',
             'name' => '微信公众号支付',
-            'bind' => [Account::CHANNEL_WECHAT],
+            'bind' => [Account::WECHAT],
         ],
         self::PAYMENT_WECHAT_QRC  => [
             'type' => 'NATIVE',
             'name' => '微信二维码支付',
-            'bind' => [Account::CHANNEL_WEB],
+            'bind' => [Account::WEB],
         ],
         // 支付宝支持配置（不需要的直接注释）
         self::PAYMENT_ALIPAY_WAP  => [
             'type' => '',
             'name' => '支付宝WAP支付',
-            'bind' => [Account::CHANNEL_WAP],
+            'bind' => [Account::WAP],
         ],
         self::PAYMENT_ALIPAY_WEB  => [
             'type' => '',
             'name' => '支付宝WEB支付',
-            'bind' => [Account::CHANNEL_WEB],
+            'bind' => [Account::WEB],
         ],
         self::PAYMENT_ALIAPY_APP  => [
             'type' => '',
             'name' => '支付宝APP支付',
-            'bind' => [Account::CHANNEL_ANDROID, Account::CHANNEL_IOSAPP],
+            'bind' => [Account::ANDROID, Account::IOSAPP],
         ],
         // 汇聚支持配置（不需要的直接注释）
         self::PAYMENT_JOINPAY_XCX => [
             'type' => 'WEIXIN_XCX',
             'name' => '汇聚小程序支付',
-            'bind' => [Account::CHANNEL_WXAPP],
+            'bind' => [Account::WXAPP],
         ],
         self::PAYMENT_JOINPAY_GZH => [
             'type' => 'WEIXIN_GZH',
             'name' => '汇聚公众号支付',
-            'bind' => [Account::CHANNEL_WECHAT],
+            'bind' => [Account::WECHAT],
         ],
     ];
 
@@ -188,7 +188,7 @@ abstract class Payment
         try {
             if (empty($config)) {
                 $map = ['code' => $code, 'status' => 1, 'deleted' => 0];
-                $config = BaseUserPayment::mk()->where($map)->findOrEmpty()->toArray();
+                $config = PluginPaymentConfig::mk()->where($map)->findOrEmpty()->toArray();
             }
             if (empty($config)) {
                 throw new Exception("支付通道[#{$code}]已禁用或不存在！");

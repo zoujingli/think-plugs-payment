@@ -9,14 +9,12 @@
       "email": "zoujingli@qq.com"
     }
   ],
+  "minimum-stability": "dev",
   "require": {
     "php": ">=7.1",
     "ext-json": "*",
     "zoujingli/think-plugs-admin": "^1.0||dev-master",
     "zoujingli/think-plugs-account": "^1.0||dev-master"
-  },
-  "require-dev": {
-    "zoujingli/think-plugs-static": "dev-master"
   },
   "autoload": {
     "psr-4": {
@@ -24,15 +22,15 @@
     }
   },
   "extra": {
-    "plugin": {
-      "copy": {
-        "stc/database": "database/migrations"
-      }
-    },
     "think": {
       "services": [
         "plugin\\payment\\Service"
       ]
+    },
+    "plugin": {
+      "copy": {
+        "stc/database": "database/migrations"
+      }
     }
   },
   "config": {
