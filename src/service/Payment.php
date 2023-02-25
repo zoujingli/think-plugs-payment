@@ -225,16 +225,54 @@ abstract class Payment
     }
 
     /**
+     * 设置通道状态
+     * @param string $type 通道编号
+     * @param integer $status 通道状态
+     * @return bool
+     */
+    public static function setStatus(string $type, int $status): bool
+    {
+        if (isset(self::$types[$type])) {
+            self::$types[$type]['status'] = intval(!!$status);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * 保存用户通道状态
+     * @return mixed
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    public static function saveStatus()
+    {
+        $denys = [];
+        foreach (self::getTypeAll() as $k => $v) {
+            if (empty($v['status'])) $denys[] = $k;
+        }
+        return sysdata('plugin.payment.denys', $denys);
+    }
+
+    /**
      * 获取支付类型
      * @param ?int $status
      * @return array
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
      */
     public static function getTypeAll(?int $status = null): array
     {
-        $types = [];
-        $binds = array_keys(Account::getTypes(1));
-        foreach (self::$types as $k => $v) if (is_null($status) || $status == $v['status']) {
-            if (array_intersect($v['account'], $binds)) $types[$k] = $v;
+        $denys = sysdata('plugin.account.denys');
+        [$types, $binds] = [[], array_keys(Account::getTypes(1))];
+        foreach (self::$types as $k => &$v) {
+            $v['status'] = intval(!in_array($k, $denys));
+            if (is_null($status) || $status == $v['status']) {
+                if (array_intersect($v['account'], $binds)) $types[$k] = $v;
+            }
         }
         return $types;
     }
