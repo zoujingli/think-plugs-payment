@@ -28,51 +28,8 @@ class InstallPayment extends Migrator
     public function change()
     {
         $this->_create_plugin_payment_action();
+        $this->_create_plugin_payment_balance();
         $this->_create_plugin_payment_config();
-    }
-
-    /**
-     * 创建数据对象
-     * @class PluginPaymentBalance
-     * @table plugin_payment_balance
-     * @return void
-     */
-    private function _create_plugin_payment_balance()
-    {
-
-        // 当前数据表
-        $table = 'plugin_payment_balance';
-
-        // 存在则跳过
-        if ($this->hasTable($table)) return;
-
-        // 创建数据表
-        $this->table($table, [
-            'engine' => 'InnoDB', 'collation' => 'utf8mb4_general_ci', 'comment' => '插件-账号-余额',
-        ])
-            ->addColumn('unid', 'integer', ['limit' => 20, 'default' => 0, 'null' => true, 'comment' => '账号编号'])
-            ->addColumn('code', 'string', ['limit' => 20, 'default' => '', 'null' => true, 'comment' => '操作编号'])
-            ->addColumn('name', 'string', ['limit' => 200, 'default' => '', 'null' => true, 'comment' => '操作名称'])
-            ->addColumn('remark', 'string', ['limit' => 999, 'default' => '', 'null' => true, 'comment' => '操作备注'])
-            ->addColumn('amount', 'decimal', ['precision' => 20, 'scale' => 2, 'default' => '0.00', 'null' => true, 'comment' => '操作金额'])
-            ->addColumn('cancel', 'integer', ['limit' => 1, 'default' => 0, 'null' => true, 'comment' => '作废状态(0未作废,1已作废)'])
-            ->addColumn('unlock', 'integer', ['limit' => 1, 'default' => 0, 'null' => true, 'comment' => '解锁状态(0锁定中,1已生效)'])
-            ->addColumn('deleted', 'integer', ['limit' => 1, 'default' => 0, 'null' => true, 'comment' => '删除状态(0未删除,1已删除)'])
-            ->addColumn('create_by', 'integer', ['limit' => 20, 'default' => 0, 'null' => true, 'comment' => '系统用户'])
-            ->addColumn('cancel_time', 'datetime', ['default' => NULL, 'null' => true, 'comment' => '作废时间'])
-            ->addColumn('unlock_time', 'datetime', ['default' => NULL, 'null' => true, 'comment' => '解锁时间'])
-            ->addColumn('create_time', 'datetime', ['default' => NULL, 'null' => true, 'comment' => '创建时间'])
-            ->addColumn('update_time', 'datetime', ['default' => NULL, 'null' => true, 'comment' => '更新时间'])
-            ->addIndex('unid', ['name' => 'idx_plugin_payment_balance_unid'])
-            ->addIndex('code', ['name' => 'idx_plugin_payment_balance_code'])
-            ->addIndex('cancel', ['name' => 'idx_plugin_payment_balance_cancel'])
-            ->addIndex('unlock', ['name' => 'idx_plugin_payment_balance_unlock'])
-            ->addIndex('deleted', ['name' => 'idx_plugin_payment_balance_deleted'])
-            ->addIndex('create_time', ['name' => 'idx_plugin_payment_balance_create_time'])
-            ->save();
-
-        // 修改主键长度
-        $this->table($table)->changeColumn('id', 'integer', ['limit' => 20, 'identity' => true]);
     }
 
     /**
@@ -114,6 +71,51 @@ class InstallPayment extends Migrator
             ->addIndex('payment_status', ['name' => 'idx_plugin_payment_action_payment_status'])
             ->addIndex('unid', ['name' => 'idx_plugin_payment_action_unid'])
             ->addIndex('usid', ['name' => 'idx_plugin_payment_action_usid'])
+            ->save();
+
+        // 修改主键长度
+        $this->table($table)->changeColumn('id', 'integer', ['limit' => 20, 'identity' => true]);
+    }
+
+
+    /**
+     * 创建数据对象
+     * @class PluginPaymentBalance
+     * @table plugin_payment_balance
+     * @return void
+     */
+    private function _create_plugin_payment_balance()
+    {
+
+        // 当前数据表
+        $table = 'plugin_payment_balance';
+
+        // 存在则跳过
+        if ($this->hasTable($table)) return;
+
+        // 创建数据表
+        $this->table($table, [
+            'engine' => 'InnoDB', 'collation' => 'utf8mb4_general_ci', 'comment' => '插件-支付-余额',
+        ])
+            ->addColumn('unid', 'integer', ['limit' => 20, 'default' => 0, 'null' => true, 'comment' => '账号编号'])
+            ->addColumn('code', 'string', ['limit' => 20, 'default' => '', 'null' => true, 'comment' => '操作编号'])
+            ->addColumn('name', 'string', ['limit' => 200, 'default' => '', 'null' => true, 'comment' => '操作名称'])
+            ->addColumn('remark', 'string', ['limit' => 999, 'default' => '', 'null' => true, 'comment' => '操作备注'])
+            ->addColumn('amount', 'decimal', ['precision' => 20, 'scale' => 2, 'default' => '0.00', 'null' => true, 'comment' => '操作金额'])
+            ->addColumn('cancel', 'integer', ['limit' => 1, 'default' => 0, 'null' => true, 'comment' => '作废状态(0未作废,1已作废)'])
+            ->addColumn('unlock', 'integer', ['limit' => 1, 'default' => 0, 'null' => true, 'comment' => '解锁状态(0锁定中,1已生效)'])
+            ->addColumn('deleted', 'integer', ['limit' => 1, 'default' => 0, 'null' => true, 'comment' => '删除状态(0未删除,1已删除)'])
+            ->addColumn('create_by', 'integer', ['limit' => 20, 'default' => 0, 'null' => true, 'comment' => '系统用户'])
+            ->addColumn('cancel_time', 'datetime', ['default' => NULL, 'null' => true, 'comment' => '作废时间'])
+            ->addColumn('unlock_time', 'datetime', ['default' => NULL, 'null' => true, 'comment' => '解锁时间'])
+            ->addColumn('create_time', 'datetime', ['default' => NULL, 'null' => true, 'comment' => '创建时间'])
+            ->addColumn('update_time', 'datetime', ['default' => NULL, 'null' => true, 'comment' => '更新时间'])
+            ->addIndex('unid', ['name' => 'idx_plugin_payment_balance_unid'])
+            ->addIndex('code', ['name' => 'idx_plugin_payment_balance_code'])
+            ->addIndex('cancel', ['name' => 'idx_plugin_payment_balance_cancel'])
+            ->addIndex('unlock', ['name' => 'idx_plugin_payment_balance_unlock'])
+            ->addIndex('deleted', ['name' => 'idx_plugin_payment_balance_deleted'])
+            ->addIndex('create_time', ['name' => 'idx_plugin_payment_balance_create_time'])
             ->save();
 
         // 修改主键长度
