@@ -38,7 +38,7 @@ class Wechat extends PaymentAbstract
      */
     protected $payment;
 
-    const tradeTypes = [
+    private const tradeTypes = [
         Payment::WECHAT_APP => 'APP',
         Payment::WECHAT_WAP => 'MWEB',
         Payment::WECHAT_GZH => 'JSAPI',
@@ -62,7 +62,7 @@ class Wechat extends PaymentAbstract
 
     /**
      * 创建订单支付参数
-     * @param AccountInterface $account 用户OPENID
+     * @param AccountInterface $account
      * @param string $orderno 交易订单单号
      * @param string $payAmount 交易订单金额（元）
      * @param string $payTitle 交易订单名称
@@ -78,12 +78,12 @@ class Wechat extends PaymentAbstract
             $body = empty($payRemark) ? $payTitle : ($payTitle . '-' . $payRemark);
             $data = [
                 'body'             => $body,
-                'openid'           => $openid,
+                'openid'           => $account->get()['openid'] ?? '',
                 'attach'           => $this->cfgCode,
                 'out_trade_no'     => $orderno,
-                'trade_type'       => $this->tradeType ?: '',
+                'trade_type'       => self::tradeTypes[$this->cfgType] ?? '',
                 'total_fee'        => $payAmount * 100,
-                'notify_url'       => sysuri("@data/api.notify/wxpay/scene/order/param/{$this->cfgCode}", [], false, true),
+                'notify_url'       => sysuri('api.notify/wxpay', [], false, true) . "/scene/order/param/{$this->cfgCode}",
                 'spbill_create_ip' => $this->app->request->ip(),
             ];
             if (empty($data['openid'])) unset($data['openid']);

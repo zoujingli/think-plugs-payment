@@ -76,22 +76,22 @@ class Alipay extends PaymentAbstract
     public function create(AccountInterface $account, string $orderno, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
         try {
-            $this->config['notify_url'] = sysuri("@data/api.notify/alipay/scene/order/param/{$this->cfgCode}", [], false, true);
-            if (in_array($this->tradeType, [Payment::ALIPAY_WAP, Payment::ALIPAY_WEB])) {
+            $this->config['notify_url'] = sysuri('api.notify/alipay', [], false, true) . "/scene/order/param/{$this->cfgCode}";
+            if (in_array($this->cfgType, [Payment::ALIPAY_WAP, Payment::ALIPAY_WEB])) {
                 if (empty($payReturn)) {
                     throw new Exception('支付回跳地址不能为空！');
                 } else {
                     $this->config['return_url'] = $payReturn;
                 }
             }
-            if ($this->tradeType === Payment::WECHAT_APP) {
+            if ($this->cfgType === Payment::WECHAT_APP) {
                 $payment = App::instance($this->config);
-            } elseif ($this->tradeType === Payment::ALIPAY_WAP) {
+            } elseif ($this->cfgType === Payment::ALIPAY_WAP) {
                 $payment = Wap::instance($this->config);
-            } elseif ($this->tradeType === Payment::ALIPAY_WEB) {
+            } elseif ($this->cfgType === Payment::ALIPAY_WEB) {
                 $payment = Web::instance($this->config);
             } else {
-                throw new Exception("支付类型[{$this->tradeType}]暂时不支持！");
+                throw new Exception("支付类型[{$this->cfgType}]暂时不支持！");
             }
             $data = ['out_trade_no' => $orderno, 'total_amount' => $payAmount, 'subject' => $payTitle];
             if (!empty($payRemark)) $data['body'] = $payRemark;

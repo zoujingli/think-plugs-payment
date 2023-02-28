@@ -20,7 +20,6 @@ namespace plugin\payment\service\contract;
 
 use plugin\payment\model\PluginPaymentAction;
 use plugin\payment\service\Payment;
-use think\admin\Exception;
 use think\App;
 
 /**
@@ -61,18 +60,11 @@ abstract class PaymentAbstract implements PaymentInterface
     protected $cfgParams;
 
     /**
-     * 支付发起类型
-     * @var string
-     */
-    protected $tradeType;
-
-    /**
      * 支付通道构造函数
      * @param \think\App $app
      * @param string $code
      * @param string $type
      * @param array $params
-     * @throws \think\admin\Exception
      */
     public function __construct(App $app, string $code, string $type, array $params)
     {
@@ -80,13 +72,7 @@ abstract class PaymentAbstract implements PaymentInterface
         $this->cfgCode = $code;
         $this->cfgType = $type;
         $this->cfgParams = $params;
-
-        if (isset(Payment::types[$this->cfgType])) {
-            $this->tradeType = Payment::types[$this->cfgType]['type'];
-            $this->init();
-        } else {
-            throw new Exception(sprintf('支付类型[%s]未配置定义！', $this->cfgType));
-        }
+        $this->init();
     }
 
     /**
@@ -116,12 +102,11 @@ abstract class PaymentAbstract implements PaymentInterface
      * 更新支付记录并更新订单
      * @param string $orderno 商户订单单号
      * @param string $payTrade 平台交易单号
-     * @param string $payAmount 实际到账金额
+     * @param float $payAmount 实际到账金额
      * @param string $payRemark 平台支付备注
      * @return boolean
      */
-    protected function updateAction(string $orderno, string $payTrade, string $payAmount, string $payRemark = '在线支付'): bool
-
+    protected function updateAction(string $orderno, string $payTrade, float $payAmount, string $payRemark = '在线支付'): bool
     {
         // 更新支付记录
         PluginPaymentAction::mUpdate([

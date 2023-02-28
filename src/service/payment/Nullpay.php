@@ -19,7 +19,6 @@ declare (strict_types=1);
 namespace plugin\payment\service\payment;
 
 use plugin\account\service\contract\AccountInterface;
-use plugin\payment\model\ShopOrder;
 use plugin\payment\service\contract\PaymentAbstract;
 use plugin\payment\service\contract\PaymentInterface;
 use think\admin\Exception;

@@ -64,7 +64,7 @@ class Balance extends PaymentAbstract
 
     /**
      * 创建订单支付参数
-     * @param string $openid 用户OPENID
+     * @param AccountInterface $account
      * @param string $orderno 交易订单单号
      * @param string $payAmount 交易订单金额（元）
      * @param string $payTitle 交易订单名称

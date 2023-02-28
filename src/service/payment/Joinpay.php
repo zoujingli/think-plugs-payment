@@ -73,9 +73,9 @@ class Joinpay extends PaymentAbstract
                 'p4_Cur'             => '1',
                 'p5_ProductName'     => $payTitle,
                 'p6_ProductDesc'     => $payRemark,
-                'p9_NotifyUrl'       => sysuri("@data/api.notify/joinpay/scene/order/param/{$this->code}", [], false, true),
-                'q1_FrpCode'         => $tradeType ?? '',
-                'q5_OpenId'          => $openid,
+                'p9_NotifyUrl'       => sysuri('api.notify/joinpay', [], false, true) . "/scene/order/param/{$this->cfgCode}",
+                'q1_FrpCode'         => self::tradeTypes[$this->cfgType] ?? '',
+                'q5_OpenId'          => $account->get()['openid'],
                 'q7_AppId'           => $this->config['appid'],
                 'qa_TradeMerchantNo' => $this->config['trade'],
             ];

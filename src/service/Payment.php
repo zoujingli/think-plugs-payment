@@ -286,8 +286,8 @@ abstract class Payment
     public static function getTypeByChannel(string $account): array
     {
         $types = [];
-        foreach (self::getTypeAll() as $type => $attr) {
-            if ($attr['status'] > 0 && in_array($account, $attr['account'])) {
+        foreach (self::getTypeAll(1) as $type => $attr) {
+            if (in_array($account, $attr['account'])) {
                 $types[$type] = $attr['name'];
             }
         }

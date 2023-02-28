@@ -14,7 +14,7 @@ class PaymentTest extends TestCase
         $this->assertNotEmpty($all);
     }
 
-    public function testGetTypeByChannel()
+    public function testGetTypesByChannel()
     {
         $all = Payment::getTypeByChannel(Account::WXAPP);
         $this->assertNotEmpty($all);
