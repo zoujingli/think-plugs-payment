@@ -22,9 +22,9 @@ use think\admin\Model;
 
 /**
  * 用户支付行为模型
- * Class PluginPaymentAction
+ * Class PluginPaymentRecord
  * @package plugin\payment\model
  */
-class PluginPaymentAction extends Model
+class PluginPaymentRecord extends Model
 {
 }

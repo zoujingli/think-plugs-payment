@@ -18,7 +18,7 @@ declare (strict_types=1);
 
 namespace plugin\payment\service\contract;
 
-use plugin\payment\model\PluginPaymentAction;
+use plugin\payment\model\PluginPaymentRecord;
 use plugin\payment\service\Payment;
 use think\App;
 
@@ -89,7 +89,7 @@ abstract class PaymentAbstract implements PaymentInterface
      */
     protected function createAction(string $orderNo, string $payTitle, string $payAmount)
     {
-        PluginPaymentAction::mk()->insert([
+        PluginPaymentRecord::mk()->insert([
             'payment_code' => $this->cfgCode,
             'payment_type' => $this->cfgType,
             'order_no'     => $orderNo,
@@ -109,7 +109,7 @@ abstract class PaymentAbstract implements PaymentInterface
     protected function updateAction(string $orderno, string $payTrade, float $payAmount, string $payRemark = '在线支付'): bool
     {
         // 更新支付记录
-        PluginPaymentAction::mUpdate([
+        PluginPaymentRecord::mUpdate([
             'order_no'         => $orderno,
             'payment_code'     => $this->cfgCode,
             'payment_type'     => $this->cfgType,

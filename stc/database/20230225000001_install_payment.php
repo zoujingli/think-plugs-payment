@@ -27,56 +27,10 @@ class InstallPayment extends Migrator
      */
     public function change()
     {
-        $this->_create_plugin_payment_action();
         $this->_create_plugin_payment_balance();
         $this->_create_plugin_payment_config();
+        $this->_create_plugin_payment_record();
     }
-
-    /**
-     * 创建数据对象
-     * @class PluginPaymentAction
-     * @table plugin_payment_action
-     * @return void
-     */
-    private function _create_plugin_payment_action()
-    {
-
-        // 当前数据表
-        $table = 'plugin_payment_action';
-
-        // 存在则跳过
-        if ($this->hasTable($table)) return;
-
-        // 创建数据表
-        $this->table($table, [
-            'engine' => 'InnoDB', 'collation' => 'utf8mb4_general_ci', 'comment' => '插件-支付-行为',
-        ])
-            ->addColumn('unid', 'integer', ['limit' => 20, 'default' => 0, 'null' => true, 'comment' => '主账号编号'])
-            ->addColumn('usid', 'integer', ['limit' => 20, 'default' => 0, 'null' => true, 'comment' => '子账号编号'])
-            ->addColumn('order_no', 'string', ['limit' => 20, 'default' => '', 'null' => true, 'comment' => '原订单编号'])
-            ->addColumn('order_name', 'string', ['limit' => 255, 'default' => '', 'null' => true, 'comment' => '原订单标题'])
-            ->addColumn('order_amount', 'decimal', ['precision' => 20, 'scale' => 2, 'default' => '0.00', 'null' => true, 'comment' => '原订单金额'])
-            ->addColumn('payment_code', 'string', ['limit' => 20, 'default' => '', 'null' => true, 'comment' => '支付发起单号'])
-            ->addColumn('payment_type', 'string', ['limit' => 50, 'default' => '', 'null' => true, 'comment' => '支付通道类型'])
-            ->addColumn('payment_time', 'datetime', ['default' => NULL, 'null' => true, 'comment' => '支付完成时间'])
-            ->addColumn('payment_trade', 'string', ['limit' => 100, 'default' => '', 'null' => true, 'comment' => '平台交易编号'])
-            ->addColumn('payment_status', 'integer', ['limit' => 1, 'default' => 0, 'null' => true, 'comment' => '支付动作状态(0未付,1已付)'])
-            ->addColumn('payment_amount', 'decimal', ['precision' => 20, 'scale' => 2, 'default' => '0.00', 'null' => true, 'comment' => '实际到账金额'])
-            ->addColumn('create_time', 'datetime', ['default' => NULL, 'null' => true, 'comment' => '创建时间'])
-            ->addColumn('update_time', 'datetime', ['default' => NULL, 'null' => true, 'comment' => '更新时间'])
-            ->addIndex('order_no', ['name' => 'idx_plugin_payment_action_order_no'])
-            ->addIndex('payment_code', ['name' => 'idx_plugin_payment_action_payment_code'])
-            ->addIndex('payment_type', ['name' => 'idx_plugin_payment_action_payment_type'])
-            ->addIndex('payment_trade', ['name' => 'idx_plugin_payment_action_payment_trade'])
-            ->addIndex('payment_status', ['name' => 'idx_plugin_payment_action_payment_status'])
-            ->addIndex('unid', ['name' => 'idx_plugin_payment_action_unid'])
-            ->addIndex('usid', ['name' => 'idx_plugin_payment_action_usid'])
-            ->save();
-
-        // 修改主键长度
-        $this->table($table)->changeColumn('id', 'integer', ['limit' => 20, 'identity' => true]);
-    }
-
 
     /**
      * 创建数据对象
@@ -160,4 +114,51 @@ class InstallPayment extends Migrator
         // 修改主键长度
         $this->table($table)->changeColumn('id', 'integer', ['limit' => 20, 'identity' => true]);
     }
+
+
+    /**
+     * 创建数据对象
+     * @class PluginPaymentRecord
+     * @table plugin_payment_record
+     * @return void
+     */
+    private function _create_plugin_payment_record()
+    {
+
+        // 当前数据表
+        $table = 'plugin_payment_record';
+
+        // 存在则跳过
+        if ($this->hasTable($table)) return;
+
+        // 创建数据表
+        $this->table($table, [
+            'engine' => 'InnoDB', 'collation' => 'utf8mb4_general_ci', 'comment' => '插件-支付-行为',
+        ])
+            ->addColumn('unid', 'integer', ['limit' => 20, 'default' => 0, 'null' => true, 'comment' => '主账号编号'])
+            ->addColumn('usid', 'integer', ['limit' => 20, 'default' => 0, 'null' => true, 'comment' => '子账号编号'])
+            ->addColumn('order_no', 'string', ['limit' => 20, 'default' => '', 'null' => true, 'comment' => '原订单编号'])
+            ->addColumn('order_name', 'string', ['limit' => 255, 'default' => '', 'null' => true, 'comment' => '原订单标题'])
+            ->addColumn('order_amount', 'decimal', ['precision' => 20, 'scale' => 2, 'default' => '0.00', 'null' => true, 'comment' => '原订单金额'])
+            ->addColumn('payment_code', 'string', ['limit' => 20, 'default' => '', 'null' => true, 'comment' => '支付发起单号'])
+            ->addColumn('payment_type', 'string', ['limit' => 50, 'default' => '', 'null' => true, 'comment' => '支付通道类型'])
+            ->addColumn('payment_time', 'datetime', ['default' => NULL, 'null' => true, 'comment' => '支付完成时间'])
+            ->addColumn('payment_trade', 'string', ['limit' => 100, 'default' => '', 'null' => true, 'comment' => '平台交易编号'])
+            ->addColumn('payment_status', 'integer', ['limit' => 1, 'default' => 0, 'null' => true, 'comment' => '支付动作状态(0未付,1已付)'])
+            ->addColumn('payment_amount', 'decimal', ['precision' => 20, 'scale' => 2, 'default' => '0.00', 'null' => true, 'comment' => '实际到账金额'])
+            ->addColumn('create_time', 'datetime', ['default' => NULL, 'null' => true, 'comment' => '创建时间'])
+            ->addColumn('update_time', 'datetime', ['default' => NULL, 'null' => true, 'comment' => '更新时间'])
+            ->addIndex('unid', ['name' => 'idx_plugin_payment_record_unid'])
+            ->addIndex('usid', ['name' => 'idx_plugin_payment_record_usid'])
+            ->addIndex('order_no', ['name' => 'idx_plugin_payment_record_order_no'])
+            ->addIndex('payment_code', ['name' => 'idx_plugin_payment_record_payment_code'])
+            ->addIndex('payment_type', ['name' => 'idx_plugin_payment_record_payment_type'])
+            ->addIndex('payment_trade', ['name' => 'idx_plugin_payment_record_payment_trade'])
+            ->addIndex('payment_status', ['name' => 'idx_plugin_payment_record_payment_status'])
+            ->save();
+
+        // 修改主键长度
+        $this->table($table)->changeColumn('id', 'integer', ['limit' => 20, 'identity' => true]);
+    }
+
 }
