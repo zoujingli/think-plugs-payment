@@ -21,18 +21,48 @@ namespace plugin\payment\model;
 use think\admin\Model;
 
 /**
- * 用户支付参数模型
- * Class PluginPaymentConfig
+ * 用户余额模型
+ * Class PluginPaymentBalance
  * @package plugin\payment\model
  */
-class PluginPaymentConfig extends Model
+class PluginPaymentBalance extends Model
 {
     /**
-     * 格式化创建时间
-     * @param string $value
+     * 格式化输出时间
+     * @param mixed $value
      * @return string
      */
-    public function getCreateAtAttr(string $value): string
+    public function getCancelTimeAttr($value): string
+    {
+        return format_datetime($value);
+    }
+
+    /**
+     * 格式化输出时间
+     * @param mixed $value
+     * @return string
+     */
+    public function getUnlockTimeAttr($value): string
+    {
+        return format_datetime($value);
+    }
+
+    /**
+     * 格式化输出时间
+     * @param mixed $value
+     * @return string
+     */
+    public function getCreateTimeAttr($value): string
+    {
+        return format_datetime($value);
+    }
+
+    /**
+     * 格式化输出时间
+     * @param mixed $value
+     * @return string
+     */
+    public function getUpdateTimeAttr($value): string
     {
         return format_datetime($value);
     }

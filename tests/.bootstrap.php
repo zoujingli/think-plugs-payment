@@ -1,11 +1,9 @@
 <?php
 
-use plugin\account\service\Account;
-use plugin\payment\service\Payment;
 use think\facade\Db;
 
-include_once '../vendor/autoload.php';
-include_once '../vendor/topthink/framework/src/helper.php';
+include_once dirname(__DIR__) . '/vendor/autoload.php';
+include_once dirname(__DIR__) . '/vendor/topthink/framework/src/helper.php';
 
 Db::setConfig([
     'default'     => 'mysql',
@@ -22,11 +20,3 @@ Db::setConfig([
         ],
     ],
 ]);
-
-// 获取指定接口支持的支付类型
-$all = Payment::getTypeByChannel(Account::WXAPP);
-dump($all);
-
-// 获取全部可用的对付
-$all = Payment::getTypeAll();
-dump($all);

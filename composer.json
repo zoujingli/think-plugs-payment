@@ -16,9 +16,17 @@
     "zoujingli/think-plugs-admin": "^1.0||dev-master",
     "zoujingli/think-plugs-account": "^1.0||dev-master"
   },
+  "require-dev": {
+    "phpunit/phpunit": "*"
+  },
   "autoload": {
     "psr-4": {
       "plugin\\payment\\": "src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "think\\admin\\tests\\": "tests/"
     }
   },
   "extra": {
