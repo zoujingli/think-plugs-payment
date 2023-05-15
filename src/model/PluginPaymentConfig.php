@@ -18,22 +18,20 @@ declare (strict_types=1);
 
 namespace plugin\payment\model;
 
-use think\admin\Model;
-
 /**
  * 用户支付参数模型
- * Class PluginPaymentConfig
+ * @class PluginPaymentConfig
  * @package plugin\payment\model
  */
-class PluginPaymentConfig extends Model
+class PluginPaymentConfig extends Abs
 {
-    /**
-     * 格式化创建时间
-     * @param string $value
-     * @return string
-     */
-    public function getCreateAtAttr(string $value): string
+    public function setContentAttr($value): string
     {
-        return format_datetime($value);
+        return is_array($value) ? json_encode($value, 64 | 256) : (string)$value;
+    }
+
+    public function getContentAttr($value): array
+    {
+        return is_string($value) ? json_decode($value, true) : [];
     }
 }

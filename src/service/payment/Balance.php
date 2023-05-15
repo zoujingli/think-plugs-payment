@@ -20,25 +20,27 @@ declare (strict_types=1);
 namespace plugin\payment\service\payment;
 
 use plugin\account\service\contract\AccountInterface;
-use plugin\payment\model\DataUserBalance;
-use plugin\payment\model\ShopOrder;
-use plugin\payment\service\contract\PaymentAbstract;
-use plugin\payment\service\UserBalanceService;
+use plugin\payment\service\Balance as BalanceService;
+use plugin\payment\service\contract\PaymentInterface;
+use plugin\payment\service\contract\PaymentUsageTrait;
 use think\admin\Exception;
 use think\admin\extend\CodeExtend;
+use think\Response;
 
 /**
- * 账户余额支付通道
- * Class Balance
+ * 账户余额支付方式
+ * @class Balance
  * @package plugin\payment\service\payment
  */
-class Balance extends PaymentAbstract
+class Balance implements PaymentInterface
 {
+    use PaymentUsageTrait;
+
     /**
      * 初始化支付通道
      * @return $this
      */
-    public function init(): Balance
+    public function init(): PaymentInterface
     {
         return $this;
     }
@@ -55,17 +57,18 @@ class Balance extends PaymentAbstract
 
     /**
      * 支付通知处理
-     * @return string
+     * @param array|null $data
+     * @return \think\Response
      */
-    public function notify(): string
+    public function notify(?array $data = []): Response
     {
-        return 'SUCCESS';
+        return response('SUCCESS');
     }
 
     /**
      * 创建订单支付参数
      * @param AccountInterface $account
-     * @param string $orderno 交易订单单号
+     * @param string $orderNo 交易订单单号
      * @param string $payAmount 交易订单金额（元）
      * @param string $payTitle 交易订单名称
      * @param string $payRemark 订单订单描述
@@ -73,43 +76,29 @@ class Balance extends PaymentAbstract
      * @param string $payImages 支付凭证图片
      * @return array
      * @throws \think\admin\Exception
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
      */
-    public function create(AccountInterface $account, string $orderno, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderNo, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
-        $order = ShopOrder::mk()->where(['order_no' => $orderno])->find();
-        if (empty($order)) throw new Exception("订单不存在");
-        if ($order['status'] !== 2) throw new Exception("不可发起支付");
-        // 创建支付行为
-        $this->createAction($orderno, $payTitle, $payAmount);
-        // 检查能否支付
-        [$total, $count] = UserBalanceService::amount($order['uuid'], [$orderno]);
-        if ($payAmount > $total - $count) throw new Exception("可抵扣余额不足");
         try {
-            // 扣减用户余额
-            $this->app->db->transaction(function () use ($order, $payAmount) {
-                // 更新订单余额
-                ShopOrder::mk()->where(['order_no' => $order['order_no']])->update([
-                    'payment_balance' => $payAmount,
-                ]);
+            $unid = $this->withUserUnid($account);
+            $this->app->db->transaction(function () use ($unid, $orderNo, $payTitle, $payAmount, $payRemark) {
+                // 检查能否支付
+                $data = BalanceService::recount($unid);
+                if ($payAmount > $data['balance_usable']) throw new Exception('可抵扣的余额不足');
+                // 创建支付行为
+                $this->createAction($orderNo, $payTitle, $payAmount);
                 // 扣除余额金额
-                DataUserBalance::mUpdate([
-                    'uuid'   => $order['uuid'],
-                    'code'   => "KC{$order['order_no']}",
-                    'name'   => "账户余额支付",
-                    'remark' => "支付订单 {$order['order_no']} 的扣除余额 {$payAmount} 元",
-                    'amount' => -$payAmount,
-                ], 'code');
+                BalanceService::create($unid, $orderNo, $payTitle, -floatval($payAmount), $payRemark);
                 // 更新支付行为
-                $this->updateAction($order['order_no'], CodeExtend::uniqidDate(20), $payAmount, '账户余额支付');
+                $this->updateAction($orderNo, CodeExtend::uniqidDate(20), $payAmount, '账户余额支付');
             });
             // 刷新用户余额
-            UserBalanceService::amount($order['uuid']);
+            BalanceService::recount($unid);
             return ['code' => 1, 'info' => '余额支付完成'];
+        } catch (Exception $exception) {
+            throw $exception;
         } catch (\Exception $exception) {
-            return ['code' => 0, 'info' => $exception->getMessage()];
+            throw new Exception($exception->getMessage(), $exception->getCode());
         }
     }
 }

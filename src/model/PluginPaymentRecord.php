@@ -18,13 +18,49 @@ declare (strict_types=1);
 
 namespace plugin\payment\model;
 
-use think\admin\Model;
+use plugin\account\model\PluginAccountUser;
+use plugin\payment\service\Payment;
+use think\model\relation\HasOne;
 
 /**
  * 用户支付行为模型
- * Class PluginPaymentRecord
+ * @class PluginPaymentRecord
  * @package plugin\payment\model
  */
-class PluginPaymentRecord extends Model
+class PluginPaymentRecord extends Abs
 {
+    /**
+     * 关联用户数据
+     * @return \think\model\relation\HasOne
+     */
+    public function user(): HasOne
+    {
+        return $this->hasOne(PluginAccountUser::class, 'id', 'unid');
+    }
+
+    /**
+     * @param $value
+     * @return array
+     */
+    public function getUserAttr($value): array
+    {
+        return !is_array($value) ? [] : $value;
+    }
+
+    /**
+     * 格式化输出时间
+     * @param mixed $value
+     * @return string
+     */
+    public function getPaymentTimeAttr($value): string
+    {
+        return format_datetime($value);
+    }
+
+    public function toArray(): array
+    {
+        $data = parent::toArray();
+        $data['payment_type_name'] = Payment::typeName($data['payment_type']);
+        return $data;
+    }
 }

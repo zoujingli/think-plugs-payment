@@ -19,14 +19,27 @@ declare (strict_types=1);
 namespace plugin\payment\service\contract;
 
 use plugin\account\service\contract\AccountInterface;
+use think\Response;
 
 /**
- * 支付通道接口类
+ * 支付方式接口类
  * @class PaymentInterface
  * @package plugin\payment\service\contract
  */
 interface PaymentInterface
 {
+    /**
+     * 创建支付订单
+     * @param AccountInterface $account 支付账号
+     * @param string $orderNo 交易订单单号
+     * @param string $payAmount 交易订单金额（元）
+     * @param string $payTitle 交易订单名称
+     * @param string $payRemark 交易订单描述
+     * @param string $payReturn 支付回跳地址
+     * @param string $payImages 支付凭证图片
+     * @return array
+     */
+    public function create(AccountInterface $account, string $orderNo, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array;
 
     /**
      * 主动查询订单支付
@@ -37,20 +50,8 @@ interface PaymentInterface
 
     /**
      * 支付通知处理
-     * @return string
+     * @param ?array $data
+     * @return \think\Response
      */
-    public function notify(): string;
-
-    /**
-     * 创建支付订单
-     * @param AccountInterface $account 支付账号
-     * @param string $orderno 交易订单单号
-     * @param string $payAmount 交易订单金额（元）
-     * @param string $payTitle 交易订单名称
-     * @param string $payRemark 交易订单描述
-     * @param string $payReturn 支付回跳地址
-     * @param string $payImages 支付凭证图片
-     * @return array
-     */
-    public function create(AccountInterface $account, string $orderno, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array;
+    public function notify(?array $data = null): Response;
 }

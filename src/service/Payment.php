@@ -30,15 +30,15 @@ use plugin\payment\service\payment\Wechat;
 use think\admin\Exception;
 
 /**
- * 支付高度器
- * Class Payment
+ * 支付通道调度器
+ * @class Payment
  * @package plugin\payment\service
  */
 abstract class Payment
 {
 
     // 用户余额支付
-    const NULLPAY = 'nullpay';
+    const NULLPAY = 'empty';
     const BALANCE = 'balance';
     const VOUCHER = 'voucher';
 
@@ -58,7 +58,11 @@ abstract class Payment
     const ALIPAY_WAP = 'alipay_wap';
     const ALIPAY_WEB = 'alipay_web';
 
-    // 支付通道配置，不需要的可以注释
+    // 已禁用的支付方式
+    private static $denys = null;
+    private static $cakey = 'plugin.payment.denys';
+
+    // 支付方式配置
     private static $types = [
         // 空支付，金额为零时自动完成支付
         self::NULLPAY     => [
@@ -161,7 +165,7 @@ abstract class Payment
     ];
 
     /**
-     * 根据配置实例支付服务
+     * 实例支付通道
      * @param string $code 支付编号或空支付类型
      * @return PaymentInterface
      * @throws \think\admin\Exception
@@ -169,17 +173,31 @@ abstract class Payment
     public static function mk(string $code): PaymentInterface
     {
         if ($code === self::NULLPAY) {
-            $vars = ['code' => 'empty', 'type' => 'empty', 'params' => []];
-            return app(Nullpay::class, $vars);
+            return Nullpay::make('empty', 'empty', []);
         } else {
             [$type, $attr, $params] = self::params($code);
-            /** @var PaymentInterface */
-            return app($attr['class'], ['code' => $code, 'type' => $type, 'params' => $params]);
+            return $attr['class']::make($code, $type, $params);
         }
     }
 
     /**
-     * 获取支付配置参数
+     * 初始化数据状态
+     * @return array[]
+     */
+    private static function init(): array
+    {
+        if (is_null(self::$denys)) try {
+            self::$denys = sysdata(self::$cakey);
+            foreach (self::$types as $type => &$item) {
+                $item['status'] = intval(!in_array($type, self::$denys));
+            }
+        } catch (\Exception $exception) {
+        }
+        return self::$types;
+    }
+
+    /**
+     * 获取支付参数
      * @param string $code 支付通道编号
      * @param array $config 支付通道参数
      * @return array [type, attr, params]
@@ -195,10 +213,10 @@ abstract class Payment
             if (empty($config)) {
                 throw new Exception("支付通道[#{$code}]参数异常！");
             }
-            $params = @json_decode($config['content'], true);
-            if (empty($params)) {
-                throw new Exception("支付通道[#{$code}]参数无效！");
-            }
+
+            $params = is_string($config['content']) ? @json_decode($config['content'], true) : $config['content'];
+            if (empty($params)) throw new Exception("支付通道[#{$code}]参数无效！");
+
             if (empty(self::$types[$config['type']]['status'])) {
                 throw new Exception("支付通道[@{$config['type']}]未启用！");
             }
@@ -209,31 +227,31 @@ abstract class Payment
     }
 
     /**
-     * 添加支付类型
-     * @param string $type 支付类型
+     * 添加支付方式
+     * @param string $type 支付编码
      * @param string $name 支付名称
      * @param string $class 处理机制
      * @param array $account 绑定终端
      * @return array[]
      */
-    public static function addType(string $type, string $name, string $class, array $account = []): array
+    public static function add(string $type, string $name, string $class, array $account = []): array
     {
         if (class_exists($class) && in_array(PaymentInterface::class, class_implements($class))) {
             self::$types[$type] = ['name' => $name, 'class' => $class, 'status' => 1, 'account' => $account];
         }
-        return self::getTypeAll();
+        return self::types();
     }
 
     /**
-     * 设置通道状态
-     * @param string $type 通道编号
-     * @param integer $status 通道状态
+     * 设置方式状态
+     * @param string $type 支付编码
+     * @param integer $status 支付状态
      * @return bool
      */
-    public static function setStatus(string $type, int $status): bool
+    public static function set(string $type, int $status): bool
     {
         if (isset(self::$types[$type])) {
-            self::$types[$type]['status'] = intval(!!$status);
+            self::$types[$type]['status'] = $status;
             return true;
         } else {
             return false;
@@ -241,56 +259,87 @@ abstract class Payment
     }
 
     /**
-     * 保存用户通道状态
-     * @return mixed
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
+     * 保存支付方式
+     * @return true|integer
+     * @throws \think\admin\Exception
      */
-    public static function saveStatus()
+    public static function save()
     {
-        $denys = [];
-        foreach (self::getTypeAll() as $k => $v) {
-            if (empty($v['status'])) $denys[] = $k;
+        self::$denys = [];
+        foreach (self::types() as $k => $v) {
+            if (empty($v['status'])) self::$denys[] = $k;
         }
-        return sysdata('plugin.payment.denys', $denys);
+        return sysdata(self::$cakey, self::$denys);
     }
 
     /**
-     * 获取支付类型
-     * @param ?int $status
+     * 获取支付方式
+     * @param ?integer $status
      * @return array
      */
-    public static function getTypeAll(?int $status = null): array
+    public static function types(?int $status = null): array
     {
         try {
-            $denys = sysdata('plugin.account.denys');
-            [$types, $binds] = [[], array_keys(Account::getTypes(1))];
-            foreach (self::$types as $type => &$item) {
-                $item['status'] = intval(!in_array($type, $denys));
+            [$all, $binds] = [[], array_keys(Account::types(1))];
+            foreach (self::init() as $type => $item) {
                 if (is_null($status) || $status == $item['status']) {
-                    if (array_intersect($item['account'], $binds)) $types[$type] = $item;
+                    if (array_intersect($item['account'], $binds)) $all[$type] = $item;
                 }
             }
-            return $types;
+            return $all;
         } catch (\Exception $exception) {
             return [];
         }
     }
 
     /**
-     * 筛选支付通道
+     * 筛选支付方式
      * @param string $account 指定终端
+     * @param boolean $getfull 读取参数
      * @return array
      */
-    public static function getTypeByChannel(string $account): array
+    public static function typesByAccess(string $account, bool $getfull = false): array
     {
         $types = [];
-        foreach (self::getTypeAll(1) as $type => $attr) {
+        foreach (self::types(1) as $type => $attr) {
             if (in_array($account, $attr['account'])) {
                 $types[$type] = $attr['name'];
             }
         }
-        return $types;
+        if ($getfull) {
+            $items = [];
+            $query = PluginPaymentConfig::mk()->field('type,code,name,cover,content');
+            $query->where(['status' => 1, 'deleted' => 0])->whereIn('type', array_keys($types));
+            foreach ($query->order('sort desc,id desc')->cursor() as $item) {
+                $item['qrcode'] = $item['content']['voucher_qrcode'] ?? '';
+                unset($item['content']);
+                $items[] = $item->toArray();
+            }
+            return $items;
+        } else {
+            return $types;
+        }
+    }
+
+    /**
+     * 读取支付通道
+     * @param boolean $allow
+     * @return array
+     */
+    public static function items(bool $allow = false): array
+    {
+        $map = ['status' => 1, 'deleted' => 0];
+        $items = $allow ? ['all' => ['type' => 'all', 'code' => 'all', 'name' => '全部支付']] : [];
+        return $items + PluginPaymentConfig::mk()->where($map)->order('sort desc,id desc')->column('type,code,name', 'code');
+    }
+
+    /**
+     * 获取支付类型名称
+     * @param string $type
+     * @return string
+     */
+    public static function typeName(string $type): string
+    {
+        return self::$types[$type]['name'] ?? $type;
     }
 }

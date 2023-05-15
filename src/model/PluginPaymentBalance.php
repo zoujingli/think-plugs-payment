@@ -18,15 +18,26 @@ declare (strict_types=1);
 
 namespace plugin\payment\model;
 
-use think\admin\Model;
+use plugin\account\model\PluginAccountUser;
+use think\model\relation\HasOne;
 
 /**
  * 用户余额模型
  * Class PluginPaymentBalance
  * @package plugin\payment\model
  */
-class PluginPaymentBalance extends Model
+class PluginPaymentBalance extends Abs
 {
+
+    /**
+     * 关联用户数据
+     * @return \think\model\relation\HasOne
+     */
+    public function user(): HasOne
+    {
+        return $this->hasOne(PluginAccountUser::class, 'id', 'unid');
+    }
+
     /**
      * 格式化输出时间
      * @param mixed $value
@@ -43,26 +54,6 @@ class PluginPaymentBalance extends Model
      * @return string
      */
     public function getUnlockTimeAttr($value): string
-    {
-        return format_datetime($value);
-    }
-
-    /**
-     * 格式化输出时间
-     * @param mixed $value
-     * @return string
-     */
-    public function getCreateTimeAttr($value): string
-    {
-        return format_datetime($value);
-    }
-
-    /**
-     * 格式化输出时间
-     * @param mixed $value
-     * @return string
-     */
-    public function getUpdateTimeAttr($value): string
     {
         return format_datetime($value);
     }

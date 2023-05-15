@@ -18,11 +18,27 @@ declare (strict_types=1);
 
 namespace plugin\payment\model;
 
-/**
- * 用户地址模型
- * @class PluginPaymentAddress
- * @package plugin\payment\model
- */
-class PluginPaymentAddress extends Abs
+use think\admin\Model;
+
+abstract class Abs extends Model
 {
+    /**
+     * 格式化输出时间
+     * @param mixed $value
+     * @return string
+     */
+    public function getUpdateTimeAttr($value): string
+    {
+        return format_datetime($value);
+    }
+
+    /**
+     * 格式化输出时间
+     * @param mixed $value
+     * @return string
+     */
+    public function getCreateTimeAttr($value): string
+    {
+        return format_datetime($value);
+    }
 }

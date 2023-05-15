@@ -22,20 +22,21 @@ use AliPay\App;
 use AliPay\Wap;
 use AliPay\Web;
 use plugin\account\service\contract\AccountInterface;
-use plugin\payment\service\contract\PaymentAbstract;
 use plugin\payment\service\contract\PaymentInterface;
+use plugin\payment\service\contract\PaymentUsageTrait;
 use plugin\payment\service\Payment;
 use think\admin\Exception;
-use WeChat\Exceptions\InvalidResponseException;
-use WeChat\Exceptions\LocalCacheException;
+use think\Response;
 
 /**
  * 支付宝支付通道
- * Class Alipay
+ * @class Alipay
  * @package plugin\payment\service\payment
  */
-class Alipay extends PaymentAbstract
+class Alipay implements PaymentInterface
 {
+    use PaymentUsageTrait;
+
     /**
      * 初始化支付通道
      * @return PaymentInterface
@@ -62,9 +63,19 @@ class Alipay extends PaymentAbstract
     }
 
     /**
+     * 去除证书内容前后缀
+     * @param string $content
+     * @return string
+     */
+    private function _trimCert(string $content): string
+    {
+        return preg_replace(['/\s+/', '/-{5}.*?-{5}/'], '', $content);
+    }
+
+    /**
      * 创建订单支付参数
      * @param AccountInterface $account 用户账号实例
-     * @param string $orderno 交易订单单号
+     * @param string $orderNo 交易订单单号
      * @param string $payAmount 交易订单金额（元）
      * @param string $payTitle 交易订单名称
      * @param string $payRemark 订单订单描述
@@ -73,10 +84,11 @@ class Alipay extends PaymentAbstract
      * @return array
      * @throws Exception
      */
-    public function create(AccountInterface $account, string $orderno, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderNo, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
         try {
-            $this->config['notify_url'] = sysuri('api.notify/alipay', [], false, true) . "/scene/order/param/{$this->cfgCode}";
+            $this->withUserUnid($account);
+            $this->config['notify_url'] = $this->withNotifyUrl($orderNo);
             if (in_array($this->cfgType, [Payment::ALIPAY_WAP, Payment::ALIPAY_WEB])) {
                 if (empty($payReturn)) {
                     throw new Exception('支付回跳地址不能为空！');
@@ -93,13 +105,13 @@ class Alipay extends PaymentAbstract
             } else {
                 throw new Exception("支付类型[{$this->cfgType}]暂时不支持！");
             }
-            $data = ['out_trade_no' => $orderno, 'total_amount' => $payAmount, 'subject' => $payTitle];
+            $data = ['out_trade_no' => $orderNo, 'total_amount' => $payAmount, 'subject' => $payTitle];
             if (!empty($payRemark)) $data['body'] = $payRemark;
             $result = $payment->apply($data);
             // 创建支付记录
-            $this->createAction($orderno, $payTitle, $payAmount);
+            $data = $this->createAction($orderNo, $payTitle, $payAmount);
             // 返回支付参数
-            return ['result' => $result];
+            return ['result' => $result, 'data' => $data];
         } catch (Exception $exception) {
             throw $exception;
         } catch (\Exception $exception) {
@@ -109,20 +121,21 @@ class Alipay extends PaymentAbstract
 
     /**
      * 支付结果处理
-     * @return string
-     * @throws InvalidResponseException
+     * @param array|null $data
+     * @return \think\Response
+     * @throws \WeChat\Exceptions\InvalidResponseException
      */
-    public function notify(): string
+    public function notify(?array $data = null): Response
     {
-        $notify = App::instance($this->config)->notify();
+        $notify = $data ?: App::instance($this->config)->notify();
         if (in_array($notify['trade_status'], ['TRADE_SUCCESS', 'TRADE_FINISHED'])) {
             if ($this->updateAction($notify['out_trade_no'], $notify['trade_no'], $notify['total_amount'])) {
-                return 'success';
+                return response('success');
             } else {
-                return 'error';
+                return response('error');
             }
         } else {
-            return 'success';
+            return response('success');
         }
     }
 
@@ -130,21 +143,11 @@ class Alipay extends PaymentAbstract
      * 查询订单数据
      * @param string $orderno
      * @return array
-     * @throws InvalidResponseException
-     * @throws LocalCacheException
+     * @throws \WeChat\Exceptions\InvalidResponseException
+     * @throws \WeChat\Exceptions\LocalCacheException
      */
     public function query(string $orderno): array
     {
         return App::instance($this->config)->query($orderno);
-    }
-
-    /**
-     * 去除证书内容前后缀
-     * @param string $content
-     * @return string
-     */
-    private function _trimCert(string $content): string
-    {
-        return preg_replace(['/\s+/', '/-{5}.*?-{5}/'], '', $content);
     }
 }

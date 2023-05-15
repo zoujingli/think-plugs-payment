@@ -10,13 +10,13 @@ class PaymentTest extends TestCase
 {
     public function testGetTypes()
     {
-        $all = Payment::getTypeAll();
+        $all = Payment::types();
         $this->assertNotEmpty($all);
     }
 
     public function testGetTypesByChannel()
     {
-        $all = Payment::getTypeByChannel(Account::WXAPP);
+        $all = Payment::typesByAccess(Account::WXAPP);
         $this->assertNotEmpty($all);
     }
 }

@@ -18,27 +18,23 @@ declare (strict_types=1);
 
 namespace plugin\payment\service\payment;
 
-use plugin\account\service\contract\AccountInterface;
-use plugin\payment\service\contract\PaymentAbstract;
 use plugin\payment\service\contract\PaymentInterface;
+use plugin\payment\service\contract\PaymentUsageTrait;
 use plugin\payment\service\Payment;
-use think\admin\Exception;
-use WePay\Order;
+use plugin\payment\service\payment\wechat\WechatV2;
+use plugin\payment\service\payment\wechat\WechatV3;
+use think\admin\storage\LocalStorage;
 
 /**
- * 微信商户支付通道
+ * 微信商户支付方式
  * Class Wechat
  * @package plugin\payment\service\payment
  */
-class Wechat extends PaymentAbstract
+abstract class Wechat implements PaymentInterface
 {
-    /**
-     * 微信对象对象
-     * @var Order
-     */
-    protected $payment;
+    use PaymentUsageTrait;
 
-    private const tradeTypes = [
+    protected const tradeTypes = [
         Payment::WECHAT_APP => 'APP',
         Payment::WECHAT_WAP => 'MWEB',
         Payment::WECHAT_GZH => 'JSAPI',
@@ -47,95 +43,55 @@ class Wechat extends PaymentAbstract
     ];
 
     /**
-     * 初始化支付通道
+     * 初始化支付方式
+     * @param string $code
+     * @param string $type
+     * @param array $params
+     * @return PaymentInterface
+     */
+    public static function make(string $code, string $type, array $params): PaymentInterface
+    {
+        if (isset($params['wechat_mch_ver']) && $params['wechat_mch_ver'] === 'v3') {
+            /** @var PaymentInterface */
+            return app(WechatV3::class, ['code' => $code, 'type' => $type, 'params' => $params]);
+        } else {
+            /** @var PaymentInterface */
+            return app(WechatV2::class, ['code' => $code, 'type' => $type, 'params' => $params]);
+        }
+    }
+
+    /**
+     * 初始化支付方式
      * @return PaymentInterface
      */
     public function init(): PaymentInterface
     {
         $this->config['appid'] = $this->cfgParams['wechat_appid'];
         $this->config['mch_id'] = $this->cfgParams['wechat_mch_id'];
-        $this->config['mch_key'] = $this->cfgParams['wechat_mch_key'];
+        $this->config['mch_key'] = $this->cfgParams['wechat_mch_key'] ?? '';
+        $this->config['mch_v3_key'] = $this->cfgParams['wechat_mch_v3_key'] ?? '';
+        $this->withCertConfig();
         $this->config['cache_path'] = syspath('runtime/wechat');
-        $this->payment = Order::instance($this->config);
         return $this;
     }
 
     /**
-     * 创建订单支付参数
-     * @param AccountInterface $account
-     * @param string $orderno 交易订单单号
-     * @param string $payAmount 交易订单金额（元）
-     * @param string $payTitle 交易订单名称
-     * @param string $payRemark 订单订单描述
-     * @param string $payReturn 完成回跳地址
-     * @param string $payImages 支付凭证图片
-     * @return array
-     * @throws Exception
+     * 设置商户证书
+     * @return void
      */
-    public function create(AccountInterface $account, string $orderno, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    private function withCertConfig()
     {
-        try {
-            $body = empty($payRemark) ? $payTitle : ($payTitle . '-' . $payRemark);
-            $data = [
-                'body'             => $body,
-                'openid'           => $account->get()['openid'] ?? '',
-                'attach'           => $this->cfgCode,
-                'out_trade_no'     => $orderno,
-                'trade_type'       => self::tradeTypes[$this->cfgType] ?? '',
-                'total_fee'        => $payAmount * 100,
-                'notify_url'       => sysuri('api.notify/wxpay', [], false, true) . "/scene/order/param/{$this->cfgCode}",
-                'spbill_create_ip' => $this->app->request->ip(),
-            ];
-            if (empty($data['openid'])) unset($data['openid']);
-            $info = $this->payment->create($data);
-            if ($info['return_code'] === 'SUCCESS' && $info['result_code'] === 'SUCCESS') {
-                // 创建支付记录
-                $this->createAction($orderno, $payTitle, $payAmount);
-                // 返回支付参数
-                return $this->payment->jsapiParams($info['prepay_id']);
-            }
-            throw new Exception($info['err_code_des'] ?? '获取预支付码失败！');
-        } catch (Exception $exception) {
-            throw $exception;
-        } catch (\Exception $exception) {
-            throw new Exception($exception->getMessage(), $exception->getCode());
-        }
-    }
-
-    /**
-     * 查询微信支付订单
-     * @param string $orderno 订单单号
-     * @return array
-     * @throws \WeChat\Exceptions\InvalidResponseException
-     * @throws \WeChat\Exceptions\LocalCacheException
-     */
-    public function query(string $orderno): array
-    {
-        $result = $this->payment->query(['out_trade_no' => $orderno]);
-        if (isset($result['return_code']) && isset($result['result_code']) && isset($result['attach'])) {
-            if ($result['return_code'] === 'SUCCESS' && $result['result_code'] === 'SUCCESS') {
-                $this->updateAction($result['out_trade_no'], $result['cash_fee'] / 100, $result['transaction_id']);
-            }
-        }
-        return $result;
-    }
-
-    /**
-     * 支付结果处理
-     * @return string
-     * @throws \WeChat\Exceptions\InvalidResponseException
-     */
-    public function notify(): string
-    {
-        $notify = $this->payment->getNotify();
-        if ($notify['result_code'] == 'SUCCESS' && $notify['return_code'] == 'SUCCESS') {
-            if ($this->updateAction($notify['out_trade_no'], $notify['transaction_id'], $notify['cash_fee'] / 100)) {
-                return $this->payment->getNotifySuccessReply();
-            } else {
-                return 'error';
-            }
-        } else {
-            return $this->payment->getNotifySuccessReply();
-        }
+        if (empty($this->cfgParams['wechat_mch_cer_text'])) return;
+        if (empty($this->cfgParams['wechat_mch_key_text'])) return;
+        $local = LocalStorage::instance();
+        $prefix = "wxpay/{$this->config['mch_id']}_";
+        $sslKey = $prefix . md5($this->cfgParams['wechat_mch_key_text']) . '_key.pem';
+        $sslCer = $prefix . md5($this->cfgParams['wechat_mch_cer_text']) . '_cert.pem';
+        if (!$local->has($sslKey, true)) $local->set($sslKey, $this->cfgParams['wechat_mch_key_text'], true);
+        if (!$local->has($sslCer, true)) $local->set($sslCer, $this->cfgParams['wechat_mch_cer_text'], true);
+        $this->config['ssl_cer'] = $local->path($sslCer, true);
+        $this->config['ssl_key'] = $local->path($sslKey, true);
+        $this->config['cert_public'] = $this->config['ssl_cer'];
+        $this->config['cert_private'] = $this->config['ssl_key'];
     }
 }

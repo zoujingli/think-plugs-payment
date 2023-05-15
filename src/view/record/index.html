@@ -1,0 +1,72 @@
+{extend name="table"}
+
+{block name="button"}
+<!--{if auth("queue")}-->
+<!--<button class='layui-btn layui-btn-sm layui-btn-primary' data-queue='{:url("queue")}'>刷新领取次数</button>-->
+<!--{/if}-->
+{/block}
+
+{block name="content"}
+<div class="think-box-shadow">
+    {include file='record/index_search'}
+    <table id="UserData" data-url="{:request()->url()}" data-line="2" data-target-search="form.form-search"></table>
+</div>
+{/block}
+
+{block name='script'}
+<script>
+    $(function () {
+        $('#UserData').layTable({
+            even: true, height: 'full',
+            sort: {field: 'id', type: 'desc'},
+            cols: [[
+                {field: 'headimg', title: '头像', width: 70, align: 'center', templet: '<div>{{-showTableImage(d.user.headimg,true,"sm")}}</div>'},
+                {
+                    field: 'id', title: '用户账号', minWidth: 170, templet: function (d) {
+                        let tpls = [];
+                        tpls.push('用户昵称：{{d.user.nickname||"-"}}');
+                        tpls.push('绑定账号：{{d.user.email||d.user.phone||d.user.username||"-"}}');
+                        return laytpl(tpls.join('<br>')).render(d);
+                    }
+                },
+                {
+                    field: '', title: '订单内容', minWidth: 180, width: '15%', templet: function (d) {
+                        let tpls = [];
+                        tpls.push('订单名称：<b class="color-blue">{{d.order_name||"-"}}</b>');
+                        tpls.push('订单编号：<b class="color-blue">{{d.order_no}}</b> 元');
+                        return laytpl(tpls.join('<br>')).render(d);
+                    }
+                },
+                {
+                    field: 'order_amount', title: '交易金额', sort: true, minWidth: 180, width: '15%', templet: function (d) {
+                        let lines = [];
+                        if (d.payment_status) {
+                            lines.push('订单金额：<b class="color-blue">{{d.order_amount}}</b> 元 ( 已支付 <b class="color-blue">{{d.payment_amount}}</b> 元 )');
+                        } else {
+                            lines.push('订单金额：<b class="color-blue">{{d.order_amount}}</b> 元');
+                        }
+                        lines.push('交易单号：<b class="color-blue">{{d.payment_trade||"-"}}</b>');
+                        return laytpl(lines.join('<br>')).render(d);
+                    }
+                },
+                {
+                    field: 'unlock', title: '交易状态', minWidth: 190, width: '17%', templet: function (d) {
+                        if (d.payment_status) {
+                            d.typeInfo = '<b class="color-green">已支付</b>';
+                            d.typeLabel = '支付';
+                            d.typeDatetime = d.payment_time || '-';
+                        } else {
+                            d.typeInfo = '<b class="color-blue">待支付</b>';
+                            d.typeLabel = '生成';
+                            d.typeDatetime = d.create_time || '-';
+                        }
+                        return laytpl('<div>当前状态：{{-d.typeInfo}}<br>{{d.typeLabel}}时间：{{d.typeDatetime}}</div>').render(d);
+                    }
+                },
+                {field: 'name', title: '支付描述', minWidth: 100, templet: '<div>支付类型：{{d.payment_type_name||"-"}}<br>操作描述：{{d.payment_remark||"-"}}</div>'},
+                {field: 'id', title: '操作时间', minWidth: 235, sort: true, templet: '<div>更新时间：{{d.update_time||"-"}}<br>创建时间：{{d.create_time||"-"}}</div>'},
+            ]]
+        });
+    });
+</script>
+{/block}

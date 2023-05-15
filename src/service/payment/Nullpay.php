@@ -19,18 +19,20 @@ declare (strict_types=1);
 namespace plugin\payment\service\payment;
 
 use plugin\account\service\contract\AccountInterface;
-use plugin\payment\service\contract\PaymentAbstract;
 use plugin\payment\service\contract\PaymentInterface;
+use plugin\payment\service\contract\PaymentUsageTrait;
 use think\admin\Exception;
 use think\admin\extend\CodeExtend;
+use think\Response;
 
 /**
- * 空支付支付通道
+ * 空支付支付方式
  * Class Nullpay
  * @package plugin\payment\service\payment
  */
-class Nullpay extends PaymentAbstract
+class Nullpay implements PaymentInterface
 {
+    use PaymentUsageTrait;
 
     /**
      * 初始化支付通道
@@ -39,6 +41,32 @@ class Nullpay extends PaymentAbstract
     public function init(): PaymentInterface
     {
         return $this;
+    }
+
+    /**
+     * 创建订单支付参数
+     * @param AccountInterface $account 用户OPENID
+     * @param string $orderNo 交易订单单号
+     * @param string $payAmount 交易订单金额（元）
+     * @param string $payTitle 交易订单名称
+     * @param string $payRemark 订单订单描述
+     * @param string $payReturn 完成回跳地址
+     * @param string $payImages 支付凭证图片
+     * @return array
+     * @throws \think\admin\Exception
+     */
+    public function create(AccountInterface $account, string $orderNo, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    {
+        try {
+            $this->withUserUnid($account);
+            $this->app->db->transaction(function () use ($orderNo, $payTitle, $payAmount) {
+                $this->createAction($orderNo, $payTitle, $payAmount);
+                $this->updateAction($orderNo, CodeExtend::uniqidDate(20), $payAmount, '无需支付');
+            });
+            return ['code' => 1, 'info' => '订单无需支付'];
+        } catch (\Exception $exception) {
+            throw new Exception($exception->getMessage(), $exception->getCode());
+        }
     }
 
     /**
@@ -53,37 +81,11 @@ class Nullpay extends PaymentAbstract
 
     /**
      * 支付通知处理
-     * @return string
+     * @param array|null $data
+     * @return \think\Response
      */
-    public function notify(): string
+    public function notify(?array $data = null): Response
     {
-        return '';
-    }
-
-    /**
-     * 创建订单支付参数
-     * @param AccountInterface $account 用户OPENID
-     * @param string $orderno 交易订单单号
-     * @param string $payAmount 交易订单金额（元）
-     * @param string $payTitle 交易订单名称
-     * @param string $payRemark 订单订单描述
-     * @param string $payReturn 完成回跳地址
-     * @param string $payImages 支付凭证图片
-     * @return array
-     * @throws \think\admin\Exception
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
-     */
-    public function create(AccountInterface $account, string $orderno, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
-    {
-        $order = ShopOrder::mk()->where(['order_no' => $orderno])->find();
-        if (empty($order)) throw new Exception("订单不存在");
-        if ($order['status'] !== 2) throw new Exception("不可发起支付");
-        // 创建支付行为
-        $this->createAction($orderno, $payTitle, $payAmount);
-        // 更新支付行为
-        $this->updateAction($orderno, CodeExtend::uniqidDate(20), $payAmount, '无需支付');
-        return ['code' => 1, 'info' => '订单无需支付'];
+        return response();
     }
 }

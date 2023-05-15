@@ -5,10 +5,10 @@
 [![Total Downloads](https://poser.pugx.org/zoujingli/think-plugs-payment/downloads)](https://packagist.org/packages/zoujingli/think-plugs-payment)
 [![Monthly Downloads](https://poser.pugx.org/zoujingli/think-plugs-payment/d/monthly)](https://packagist.org/packages/zoujingli/think-plugs-payment)
 [![Daily Downloads](https://poser.pugx.org/zoujingli/think-plugs-payment/d/daily)](https://packagist.org/packages/zoujingli/think-plugs-payment)
-[![PHP Version Require](http://poser.pugx.org/zoujingli/think-plugs-payment/require/php)](https://packagist.org/packages/zoujingli/think-plugs-payment)
-[![ThinkAdmin VIP 授权](https://img.shields.io/badge/license-VIP%20授权-blueviolet.svg)](https://thinkadmin.top/vip-introduce)
+[![PHP Version](https://doc.thinkadmin.top/static/icon/php-7.1.svg)](https://thinkadmin.top)
+[![License](https://doc.thinkadmin.top/static/icon/license-vip.svg)](https://thinkadmin.top/vip-introduce)
 
-**插件正在开发测试中，不建议使用 ！！！**
+**注意：** 该插件测试版有数据库结构变化，未生成补丁，需要全新安装！]
 
 用户支付管理，此插件为[会员尊享插件](https://thinkadmin.top/vip-introduce)，未授权不可商用。
 
@@ -21,8 +21,11 @@
 ### 安装插件
 
 ```shell
-### 注意，仅支持在 ThinkAdmin v6.1 中使用
-composer require zoujingli/think-plugs-payment
+### 安装前建议尝试更新所有组件
+composer update --optimize-autoloader
+
+### 注意，插件仅支持在 ThinkAdmin v6.1 中使用
+composer require zoujingli/think-plugs-payment --optimize-autoloader
 ```
 
 ### 卸载插件
@@ -36,11 +39,10 @@ composer remove zoujingli/think-plugs-payment
 
 本插件涉及数据表有：
 
-* 插件-账号-授权 `plugin_payment_auth`
-* 插件-账号-终端 `plugin_payment_bind`
-* 插件-账号-资料 `plugin_payment_user`
-* 插件-账号-地址 `plugin_payment_user_address`
-* 插件-账号-余额 `plugin_payment_user_balance`
+* 插件-支付-地址：`plugin_payment_address`
+* 插件-支付-余额：`plugin_payment_balance`
+* 插件-支付-配置：`plugin_payment_config`
+* 插件-支付-行为：`plugin_payment_record`
 
 ### 版权说明
 
