@@ -27,6 +27,11 @@ use think\admin\Exception;
 use think\Response;
 use WePayV3\Order;
 
+/**
+ * 微信支付 V3 版本
+ * @class WechatV3
+ * @package plugin\payment\service\payment\wechat
+ */
 class WechatV3 extends Wechat
 {
     use PaymentUsageTrait;

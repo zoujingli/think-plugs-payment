@@ -38,7 +38,7 @@ abstract class Payment
 {
 
     // 用户余额支付
-    const NULLPAY = 'empty';
+    const NULLPAY = 'nullpay';
     const BALANCE = 'balance';
     const VOUCHER = 'voucher';
 
@@ -173,7 +173,7 @@ abstract class Payment
     public static function mk(string $code): PaymentInterface
     {
         if ($code === self::NULLPAY) {
-            return Nullpay::make('empty', 'empty', []);
+            return Nullpay::make(self::NULLPAY, self::NULLPAY, []);
         } else {
             [$type, $attr, $params] = self::params($code);
             return $attr['class']::make($code, $type, $params);

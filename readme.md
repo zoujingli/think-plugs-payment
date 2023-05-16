@@ -16,7 +16,7 @@
 
 ### 开放接口
 
-整理中...
+接口文档：https://documenter.getpostman.com/view/4518676/2s93eeRpDr
 
 ### 安装插件
 
@@ -24,8 +24,11 @@
 ### 安装前建议尝试更新所有组件
 composer update --optimize-autoloader
 
-### 注意，插件仅支持在 ThinkAdmin v6.1 中使用
+### 安装稳定版本 ( 插件仅支持在 ThinkAdmin v6.1 中使用 )
 composer require zoujingli/think-plugs-payment --optimize-autoloader
+
+### 安装测试版本（ 插件仅支持在 ThinkAdmin v6.1 中使用 ）
+composer require zoujingli/think-plugs-payment dev-master --optimize-autoloader
 ```
 
 ### 卸载插件

@@ -25,6 +25,11 @@ use think\admin\Exception;
 use think\Response;
 use WePay\Order;
 
+/**
+ * 微信支付 V2 版本
+ * @class WechatV2
+ * @package plugin\payment\service\payment\wechat
+ */
 class WechatV2 extends Wechat
 {
     /** @var Order */
