@@ -73,22 +73,23 @@ class Alipay implements PaymentInterface
     }
 
     /**
-     * 创建订单支付参数
-     * @param AccountInterface $account 用户账号实例
+     * 创建支付订单
+     * @param AccountInterface $account 支付账号
      * @param string $orderNo 交易订单单号
-     * @param string $payAmount 交易订单金额（元）
-     * @param string $payTitle 交易订单名称
-     * @param string $payRemark 订单订单描述
-     * @param string $payReturn 完成回跳地址
+     * @param string $orderTitle 交易订单标题
+     * @param string $orderAmount 订单支付金额（元）
+     * @param string $payAmount 本次交易金额
+     * @param string $payRemark 交易订单描述
+     * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
-     * @return array
-     * @throws Exception
+     * @return array [code,info,data,param]
+     * @throws \think\admin\Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
         try {
-            $this->withUserUnid($account);
-            $this->config['notify_url'] = $this->withNotifyUrl($orderNo);
+            [$payCode] = [$this->withPayCode(), $this->withUserUnid($account)];
+            $this->config['notify_url'] = $this->withNotifyUrl($payCode);
             if (in_array($this->cfgType, [Payment::ALIPAY_WAP, Payment::ALIPAY_WEB])) {
                 if (empty($payReturn)) {
                     throw new Exception('支付回跳地址不能为空！');
@@ -105,13 +106,12 @@ class Alipay implements PaymentInterface
             } else {
                 throw new Exception("支付类型[{$this->cfgType}]暂时不支持！");
             }
-            $data = ['out_trade_no' => $orderNo, 'total_amount' => $payAmount, 'subject' => $payTitle];
-            if (!empty($payRemark)) $data['body'] = $payRemark;
-            $result = $payment->apply($data);
+            $param = ['out_trade_no' => $payCode, 'total_amount' => $payAmount, 'subject' => $orderTitle];
+            if (!empty($orderRemark)) $param['body'] = $orderRemark;
             // 创建支付记录
-            $data = $this->createAction($orderNo, $payTitle, $payAmount);
+            $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
             // 返回支付参数
-            return ['result' => $result, 'data' => $data];
+            return ['code' => 1, 'info' => '创建支付成功', 'data' => $data, 'param' => $payment->apply($param)];
         } catch (Exception $exception) {
             throw $exception;
         } catch (\Exception $exception) {
@@ -141,13 +141,13 @@ class Alipay implements PaymentInterface
 
     /**
      * 查询订单数据
-     * @param string $orderno
+     * @param string $payCode
      * @return array
      * @throws \WeChat\Exceptions\InvalidResponseException
      * @throws \WeChat\Exceptions\LocalCacheException
      */
-    public function query(string $orderno): array
+    public function query(string $payCode): array
     {
-        return App::instance($this->config)->query($orderno);
+        return App::instance($this->config)->query($payCode);
     }
 }

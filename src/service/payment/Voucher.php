@@ -19,11 +19,9 @@ declare (strict_types=1);
 namespace plugin\payment\service\payment;
 
 use plugin\account\service\contract\AccountInterface;
-use plugin\payment\model\PluginPaymentRecord;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\contract\PaymentUsageTrait;
 use think\admin\Exception;
-use think\admin\extend\CodeExtend;
 use think\Response;
 
 /**
@@ -46,10 +44,10 @@ class Voucher implements PaymentInterface
 
     /**
      * 订单数据查询
-     * @param string $orderno
+     * @param string $payCode
      * @return array
      */
-    public function query(string $orderno): array
+    public function query(string $payCode): array
     {
         return [];
     }
@@ -58,35 +56,30 @@ class Voucher implements PaymentInterface
      * 支付通知处理
      * @param array|null $data
      * @return \think\Response
-     * @throws \think\admin\Exception
      */
     public function notify(?array $data = null): Response
     {
-        $map = ['order_no' => $data['order_no'], 'payment_code' => $this->cfgCode, 'payment_type' => $this->cfgType];
-        if (($model = PluginPaymentRecord::mk()->where($map)->findOrEmpty())->isEmpty()) {
-            throw new Exception("支付行为记录不存在！");
-        }
-        $this->updateAction($data['order_no'], CodeExtend::uniqidDate(20), $model->getAttr('order_amount'));
-        return response('success');
+        return response();
     }
 
     /**
-     * 创建订单支付参数
-     * @param AccountInterface $account 用户OPENID
+     * 创建支付订单
+     * @param AccountInterface $account 支付账号
      * @param string $orderNo 交易订单单号
-     * @param string $payAmount 交易订单金额（元）
-     * @param string $payTitle 交易订单名称
-     * @param string $payRemark 订单订单描述
-     * @param string $payReturn 完成回跳地址
+     * @param string $orderTitle 交易订单标题
+     * @param string $orderAmount 订单支付金额（元）
+     * @param string $payAmount 本次交易金额
+     * @param string $payRemark 交易订单描述
+     * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
-     * @return array
+     * @return array [code,info,data,param]
      * @throws \think\admin\Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
-        $this->withUserUnid($account);
-        if (empty($payImages)) throw new Exception('支付凭证不能为空');
-        $data = $this->createAction($orderNo, $payTitle, $payAmount, $payImages);
-        return ['code' => 1, 'info' => '支付凭证上传成功！', 'data' => $data];
+        if (empty($payImages)) throw new Exception('凭证不能为空！');
+        [$payCode,] = [$this->withPayCode(), $this->withUserUnid($account)];
+        $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, $payImages);
+        return ['code' => 1, 'info' => '凭证上传成功！', 'data' => $data, 'param' => []];
     }
 }

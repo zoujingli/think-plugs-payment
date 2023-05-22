@@ -19,19 +19,19 @@ declare (strict_types=1);
 namespace plugin\payment\service\payment;
 
 use plugin\account\service\contract\AccountInterface;
-use plugin\payment\service\Balance as BalanceService;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\contract\PaymentUsageTrait;
+use plugin\payment\service\Integral as IntegralService;
 use think\admin\Exception;
 use think\admin\extend\CodeExtend;
 use think\Response;
 
 /**
- * 账户余额支付方式
- * @class Balance
+ * 账户积分支付方式
+ * @class Integral
  * @package plugin\payment\service\payment
  */
-class Balance implements PaymentInterface
+class Integral implements PaymentInterface
 {
     use PaymentUsageTrait;
 
@@ -52,6 +52,18 @@ class Balance implements PaymentInterface
     public function query(string $payCode): array
     {
         return [];
+    }
+
+    /**
+     * 积分抵扣金额比例
+     * @return float
+     * @throws \think\admin\Exception
+     */
+    public static function toAmountRatio(): float
+    {
+        $cfg = sysdata('plugin.payment.config');
+        if (empty($cfg['integral']) || $cfg['integral'] < 1) $cfg['integral'] = 1;
+        return 1 / floatval($cfg['integral']);
     }
 
     /**
@@ -80,22 +92,22 @@ class Balance implements PaymentInterface
     public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
         try {
-            [$data, $unid, $payCode] = [[], $this->withUserUnid($account), $this->withPayCode()];
-            $this->app->db->transaction(function () use (&$data, $unid, $orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, $payRemark) {
+            [$data, $ratio, $payCode, $unid] = [[], self::toAmountRatio(), $this->withPayCode(), $this->withUserUnid($account)];
+            $this->app->db->transaction(function () use (&$data, $unid, $ratio, $orderNo, $orderAmount, $orderTitle, $payCode, $payAmount, $payRemark) {
                 // 检查能否支付
-                $data = BalanceService::recount($unid);
-                if ($payAmount > $data['balance_usable']) throw new Exception('可抵扣的余额不足');
+                $data = IntegralService::recount($unid);
+                if ($payAmount > $data['balance_usable']) throw new Exception('可抵扣的积分不足');
                 // 创建支付行为
-                $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, '', $payAmount);
-                // 扣除余额金额
-                BalanceService::create($unid, $orderNo, $orderTitle, -floatval($payAmount), $payRemark);
+                $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, sprintf('%01.2f', $payAmount * $ratio), '', '0.00', $payAmount);
+                // 扣除积分金额
+                IntegralService::create($unid, $orderNo, $orderTitle, -floatval($payAmount), $payRemark);
                 // 更新支付行为
-                $data = $this->updateAction($payCode, CodeExtend::uniqidDate(20), $payAmount, '账户余额支付');
+                $data = $this->updateAction($payCode, CodeExtend::uniqidDate(20), $payAmount, '账户积分支付');
             });
-            // 刷新用户余额
-            BalanceService::recount($unid);
+            // 刷新用户积分
+            IntegralService::recount($unid);
             // 返回支付结果
-            return ['code' => 1, 'info' => '余额支付完成', 'data' => $data, 'param' => []];
+            return ['code' => 1, 'info' => '积分抵扣完成', 'data' => $data, 'param' => []];
         } catch (Exception $exception) {
             throw $exception;
         } catch (\Exception $exception) {

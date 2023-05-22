@@ -51,30 +51,31 @@ class WechatV3 extends Wechat
     }
 
     /**
-     * 创建订单支付参数
-     * @param AccountInterface $account
+     * 创建支付订单
+     * @param AccountInterface $account 支付账号
      * @param string $orderNo 交易订单单号
-     * @param string $payAmount 交易订单金额（元）
-     * @param string $payTitle 交易订单名称
-     * @param string $payRemark 订单订单描述
-     * @param string $payReturn 完成回跳地址
+     * @param string $orderTitle 交易订单标题
+     * @param string $orderAmount 订单支付金额（元）
+     * @param string $payAmount 本次交易金额
+     * @param string $payRemark 交易订单描述
+     * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
      * @return array
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
         try {
-            $this->withUserUnid($account);
-            $body = empty($payRemark) ? $payTitle : ($payTitle . '-' . $payRemark);
+            [$payCode] = [$this->withPayCode(), $this->withUserUnid($account)];
+            $body = empty($orderRemark) ? $orderTitle : ($orderTitle . '-' . $orderRemark);
             $data = [
                 'appid'        => $this->config['appid'],
                 'mchid'        => $this->config['mch_id'],
                 'payer'        => ['openid' => $this->withUserField($account, 'openid')],
                 'amount'       => ['total' => intval($payAmount * 100), 'currency' => 'CNY'],
-                'notify_url'   => $this->withNotifyUrl($orderNo),
+                'notify_url'   => $this->withNotifyUrl($payCode),
                 'description'  => $body,
-                'out_trade_no' => $orderNo,
+                'out_trade_no' => $payCode,
             ];
             $tradeType = static::tradeTypes[$this->cfgType] ?? '';
             if (in_array($this->cfgType, [Payment::WECHAT_WAP, Payment::WECHAT_QRC])) {
@@ -84,11 +85,11 @@ class WechatV3 extends Wechat
                 $tradeType = 'h5';
                 $data['scene_info'] = ['h5_info' => ['type' => 'Wap'], 'payer_client_ip' => request()->ip()];
             }
-            $info = $this->payment->create(strtolower($tradeType), $data);
+            $param = $this->payment->create(strtolower($tradeType), $data);
             // 创建支付记录
-            $this->createAction($orderNo, $payTitle, $payAmount);
+            $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
             // 返回支付参数
-            return $info;
+            return ['code' => 1, 'info' => '创建支付成功', 'data' => $data, 'param' => $param];
         } catch (Exception $exception) {
             throw $exception;
         } catch (\Exception $exception) {
@@ -98,13 +99,13 @@ class WechatV3 extends Wechat
 
     /**
      * 查询微信支付订单
-     * @param string $orderno 订单单号
+     * @param string $payCode 订单单号
      * @return array
      */
-    public function query(string $orderno): array
+    public function query(string $payCode): array
     {
         try {
-            $result = $this->payment->query($orderno);
+            $result = $this->payment->query($payCode);
             if (isset($result['trade_state']) && $result['trade_state'] === 'SUCCESS') {
                 $this->updateAction($result['out_trade_no'], strval($result['amount']['total'] / 100), $result['transaction_id'] ?? '');
             }

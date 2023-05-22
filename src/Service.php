@@ -24,10 +24,29 @@ use think\admin\extend\CodeExtend;
 use think\admin\Plugin;
 use think\Request;
 
+/**
+ * 插件注册服务
+ * @class Service
+ * @package plugin\payment
+ */
 class Service extends Plugin
 {
+    /**
+     * 定义插件名称
+     * @var string
+     */
+    protected $appName = '多端支付管理';
+
+    /**
+     * 定义安装包名
+     * @var string
+     */
     protected $package = 'zoujingli/think-plugs-payment';
 
+    /**
+     * 插件服务注册
+     * @return void
+     */
     public function register(): void
     {
         // 注册支付通知路由
@@ -41,16 +60,20 @@ class Service extends Plugin
         });
     }
 
+    /**
+     * 定义插件菜单
+     * @return array
+     */
     public static function menu(): array
     {
-        $name = app(static::class)->appName;
+        $code = app(static::class)->appCode;
         return array_merge(AccountService::menu(), [
             [
                 'name' => '支付管理',
                 'subs' => [
-                    ['name' => '支付通道管理', 'icon' => 'layui-icon layui-icon-user', 'node' => "{$name}/config/index"],
-                    ['name' => '账号余额管理', 'icon' => 'layui-icon layui-icon-cellphone', 'node' => "{$name}/balance/index"],
-                    ['name' => '支付行为管理', 'icon' => 'layui-icon layui-icon-cellphone', 'node' => "{$name}/record/index"],
+                    ['name' => '支付通道管理', 'icon' => 'layui-icon layui-icon-user', 'node' => "{$code}/config/index"],
+                    ['name' => '账号余额管理', 'icon' => 'layui-icon layui-icon-cellphone', 'node' => "{$code}/balance/index"],
+                    ['name' => '支付行为管理', 'icon' => 'layui-icon layui-icon-cellphone', 'node' => "{$code}/record/index"],
                 ],
             ]
         ]);

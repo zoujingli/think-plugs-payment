@@ -98,17 +98,28 @@ trait PaymentUsageTrait
 
     /**
      * 创建支付行为
-     * @param string $orderNo 商户订单单号
-     * @param string $payTitle 商户订单标题
-     * @param string $payAmount 需要支付金额
-     * @param string $payImages 凭证支付图片
+     * @param string $orderNo 订单单号号
+     * @param string $orderTitle 订单标题
+     * @param string $orderAmount 订单总金额
+     * @param string $payCode 此次支付单号
+     * @param string $payAmount 此次支付金额
+     * @param string $payImages 支付凭证图片
+     * @param string $usedBalance 使用余额
+     * @param string $usedIntegral 使用积分
      * @return array
      * @throws \think\admin\Exception
      */
-    protected function createAction(string $orderNo, string $payTitle, string $payAmount, string $payImages = ''): array
+    protected function createAction(string $orderNo, string $orderTitle, string $orderAmount, string $payCode, string $payAmount, string $payImages = '', string $usedBalance = '0.00', string $usedIntegral = '0.00'): array
     {
         // 检查是否已经支付
         $map = ['order_no' => $orderNo, 'payment_status' => 1];
+        $total = PluginPaymentRecord::mk()->where($map)->sum('payment_amount');
+        if ($total >= floatval($orderAmount)) {
+            throw new Exception("订单 {$orderNo} 已经完成支付！", 1);
+        }
+        if ($total + floatval($payAmount) > floatval($orderAmount)) {
+            throw new Exception('支付金额大于订单金额');
+        }
         if (($model = PluginPaymentRecord::mk()->where($map)->findOrEmpty())->isExists()) {
             throw new Exception("订单 {$orderNo} 已经完成支付！", 1);
         }
@@ -116,35 +127,39 @@ trait PaymentUsageTrait
         $model->save([
             'unid'           => intval(sysvar('PluginPaymentUnid')),
             'usid'           => intval(sysvar('PluginPaymentUsid')),
+            'code'           => $payCode,
             'order_no'       => $orderNo,
-            'order_name'     => $payTitle,
-            'order_amount'   => $payAmount,
-            'payment_code'   => $this->cfgCode,
-            'payment_type'   => $this->cfgType,
-            'payment_images' => $payImages
+            'order_name'     => $orderTitle,
+            'order_amount'   => $orderAmount,
+            'channel_code'   => $this->cfgCode,
+            'channel_type'   => $this->cfgType,
+            'payment_images' => $payImages,
+            'used_payment'   => $payAmount,
+            'used_balance'   => $usedBalance,
+            'used_integral'  => $usedIntegral,
         ]);
         return $model->toArray();
     }
 
     /**
      * 更新创建支付行为
-     * @param string $orderno 商户订单单号
+     * @param string $payCode 商户订单单号
      * @param string $payTrade 平台交易单号
      * @param string $payAmount 实际到账金额
      * @param string $payRemark 平台支付备注
      * @return boolean|array
      */
-    protected function updateAction(string $orderno, string $payTrade, string $payAmount, string $payRemark = '在线支付')
+    protected function updateAction(string $payCode, string $payTrade, string $payAmount, string $payRemark = '在线支付')
     {
         // 更新支付记录
-        $map = ['order_no' => $orderno, 'payment_code' => $this->cfgCode, 'payment_type' => $this->cfgType];
+        $map = ['code' => $payCode, 'channel_code' => $this->cfgCode, 'channel_type' => $this->cfgType];
         if (($model = PluginPaymentRecord::mk()->where($map)->findOrEmpty())->isEmpty()) return false;
 
         // 更新支付行为
         $model->save([
-            'order_no'       => $orderno,
-            'payment_code'   => $this->cfgCode,
-            'payment_type'   => $this->cfgType,
+            'code'           => $payCode,
+            'channel_code'   => $this->cfgCode,
+            'channel_type'   => $this->cfgType,
             'payment_time'   => date('Y-m-d H:i:s'),
             'payment_trade'  => $payTrade,
             'payment_status' => 1,
@@ -160,6 +175,18 @@ trait PaymentUsageTrait
     }
 
     /**
+     * 生成支付单号
+     * @return string
+     */
+    protected function withPayCode(): string
+    {
+        do {
+            $code = CodeExtend::uniqidNumber(16, 'U');
+        } while (PluginPaymentRecord::mk()->where(['code' => $code])->findOrEmpty()->isExists());
+        return $code;
+    }
+
+    /**
      * 获取账号编号
      * @param AccountInterface $account
      * @return integer
@@ -167,7 +194,7 @@ trait PaymentUsageTrait
      */
     protected function withUserUnid(AccountInterface $account): int
     {
-        sysvar('PluginPaymentUsid', $this->withUserField($account, 'id'));
+        sysvar('PluginPaymentUsid', intval($this->withUserField($account, 'id')));
         return sysvar('PluginPaymentUnid', intval($this->withUserField($account, 'unid')));
     }
 

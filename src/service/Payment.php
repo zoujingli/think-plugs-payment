@@ -20,6 +20,7 @@ namespace plugin\payment\service;
 
 use plugin\account\service\Account;
 use plugin\payment\model\PluginPaymentConfig;
+use plugin\payment\model\PluginPaymentRecord;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\payment\Alipay;
 use plugin\payment\service\payment\Balance;
@@ -41,6 +42,7 @@ abstract class Payment
     const NULLPAY = 'nullpay';
     const BALANCE = 'balance';
     const VOUCHER = 'voucher';
+    const INTEGRAL = 'integral';
 
     // 汇聚支付参数
     const JOINPAY_GZH = 'joinpay_gzh';
@@ -71,9 +73,23 @@ abstract class Payment
             'status'  => 1,
             'account' => [],
         ],
-        // 余额支付，使用账户余额完成支付
+        // 余额支付，使用账户余额支付
         self::BALANCE     => [
             'name'    => '账户余额支付',
+            'class'   => Balance::class,
+            'status'  => 1,
+            'account' => [
+                Account::WAP,
+                Account::WEB,
+                Account::WXAPP,
+                Account::WECHAT,
+                Account::IOSAPP,
+                Account::ANDROID,
+            ],
+        ],
+        // 积分抵扣，使用账户积分抵扣
+        self::INTEGRAL    => [
+            'name'    => '账户积分抵扣',
             'class'   => Balance::class,
             'status'  => 1,
             'account' => [
@@ -341,5 +357,19 @@ abstract class Payment
     public static function typeName(string $type): string
     {
         return self::$types[$type]['name'] ?? $type;
+    }
+
+
+    /**
+     * 判断是否完成支付
+     * @param string $order_no 原订单号
+     * @param string $amount 需要支付金额
+     * @return boolean
+     */
+    public static function isPayed(string $order_no, string $amount): bool
+    {
+        $map = ['order_no' => $order_no, 'payment_status' => 1];
+        $payed = PluginPaymentRecord::mk()->where($map)->sum('payment_amount');
+        return $payed >= floatval($amount);
     }
 }

@@ -19,15 +19,14 @@ declare (strict_types=1);
 namespace plugin\payment\model;
 
 use plugin\account\model\PluginAccountUser;
-use plugin\payment\service\Payment;
 use think\model\relation\HasOne;
 
 /**
- * 用户支付行为模型
- * @class PluginPaymentRecord
+ * 用户积分模型
+ * @class PluginPaymentIntegral
  * @package plugin\payment\model
  */
-class PluginPaymentRecord extends Abs
+class PluginPaymentIntegral extends Abs
 {
     /**
      * 关联用户数据
@@ -39,12 +38,13 @@ class PluginPaymentRecord extends Abs
     }
 
     /**
-     * @param $value
-     * @return array
+     * 格式化输出时间
+     * @param mixed $value
+     * @return string
      */
-    public function getUserAttr($value): array
+    public function getCancelTimeAttr($value): string
     {
-        return !is_array($value) ? [] : $value;
+        return format_datetime($value);
     }
 
     /**
@@ -52,15 +52,8 @@ class PluginPaymentRecord extends Abs
      * @param mixed $value
      * @return string
      */
-    public function getPaymentTimeAttr($value): string
+    public function getUnlockTimeAttr($value): string
     {
         return format_datetime($value);
-    }
-
-    public function toArray(): array
-    {
-        $data = parent::toArray();
-        $data['channel_type_name'] = Payment::typeName($data['channel_type']);
-        return $data;
     }
 }

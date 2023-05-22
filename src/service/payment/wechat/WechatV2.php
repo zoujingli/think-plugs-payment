@@ -47,39 +47,42 @@ class WechatV2 extends Wechat
     }
 
     /**
-     * 创建订单支付参数
-     * @param AccountInterface $account
+     * 创建支付订单
+     * @param AccountInterface $account 支付账号
      * @param string $orderNo 交易订单单号
-     * @param string $payAmount 交易订单金额（元）
-     * @param string $payTitle 交易订单名称
-     * @param string $payRemark 订单订单描述
-     * @param string $payReturn 完成回跳地址
+     * @param string $orderTitle 交易订单标题
+     * @param string $orderAmount 订单支付金额（元）
+     * @param string $payAmount 本次交易金额
+     * @param string $payRemark 交易订单描述
+     * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
      * @return array
-     * @throws Exception
+     * @throws \think\admin\Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
         try {
-            $this->withUserUnid($account);
-            $body = empty($payRemark) ? $payTitle : ($payTitle . '-' . $payRemark);
+            [$payCode] = [$this->withPayCode(), $this->withUserUnid($account)];
+            $body = empty($orderRemark) ? $orderTitle : ($orderTitle . '-' . $orderRemark);
             $data = [
                 'body'             => $body,
                 'openid'           => $this->withUserField($account, 'openid'),
                 'attach'           => $this->cfgCode,
-                'out_trade_no'     => $orderNo,
+                'out_trade_no'     => $payCode,
                 'trade_type'       => static::tradeTypes[$this->cfgType] ?? '',
                 'total_fee'        => $payAmount * 100,
-                'notify_url'       => $this->withNotifyUrl($orderNo),
+                'notify_url'       => $this->withNotifyUrl($payCode),
                 'spbill_create_ip' => $this->app->request->ip(),
             ];
             if (empty($data['openid'])) unset($data['openid']);
             $info = $this->payment->create($data);
             if ($info['return_code'] === 'SUCCESS' && $info['result_code'] === 'SUCCESS') {
+                // 支付参数过滤
+                $param = isset($info['prepay_id']) ? $this->payment->jsapiParams($info['prepay_id']) : $info;
                 // 创建支付记录
-                $this->createAction($orderNo, $payTitle, $payAmount);
+                $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
                 // 返回支付参数
-                return $this->payment->jsapiParams($info['prepay_id']);
+                return ['code' => 1, 'info' => '创建支付成功', 'data' => $data, 'param' => $param];
             }
             throw new Exception($info['err_code_des'] ?? '获取预支付码失败！');
         } catch (Exception $exception) {
@@ -91,14 +94,14 @@ class WechatV2 extends Wechat
 
     /**
      * 查询微信支付订单
-     * @param string $orderno 订单单号
+     * @param string $payCode 支付号
      * @return array
      * @throws \WeChat\Exceptions\InvalidResponseException
      * @throws \WeChat\Exceptions\LocalCacheException
      */
-    public function query(string $orderno): array
+    public function query(string $payCode): array
     {
-        $result = $this->payment->query(['out_trade_no' => $orderno]);
+        $result = $this->payment->query(['out_trade_no' => $payCode]);
         if (isset($result['return_code']) && isset($result['result_code']) && isset($result['attach'])) {
             if ($result['return_code'] === 'SUCCESS' && $result['result_code'] === 'SUCCESS') {
                 $this->updateAction($result['out_trade_no'], strval($result['cash_fee'] / 100), $result['transaction_id']);

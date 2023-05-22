@@ -27,7 +27,7 @@ use think\exception\HttpResponseException;
 
 /**
  * 用户余额管理
- * Class Balance
+ * @class Balance
  * @package plugin\account\controller\user
  */
 class Balance extends Controller

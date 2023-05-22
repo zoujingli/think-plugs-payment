@@ -44,26 +44,27 @@ class Nullpay implements PaymentInterface
     }
 
     /**
-     * 创建订单支付参数
-     * @param AccountInterface $account 用户OPENID
+     * 创建支付订单
+     * @param AccountInterface $account 支付账号
      * @param string $orderNo 交易订单单号
-     * @param string $payAmount 交易订单金额（元）
-     * @param string $payTitle 交易订单名称
-     * @param string $payRemark 订单订单描述
-     * @param string $payReturn 完成回跳地址
+     * @param string $orderTitle 交易订单标题
+     * @param string $orderAmount 订单支付金额（元）
+     * @param string $payAmount 本次交易金额
+     * @param string $payRemark 交易订单描述
+     * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
-     * @return array
+     * @return array [code,info,data,param]
      * @throws \think\admin\Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
         try {
-            $this->withUserUnid($account);
-            $this->app->db->transaction(function () use ($orderNo, $payTitle, $payAmount) {
-                $this->createAction($orderNo, $payTitle, $payAmount);
-                $this->updateAction($orderNo, CodeExtend::uniqidDate(20), $payAmount, '无需支付');
+            [$data, $payCode,] = [[], $this->withPayCode(), $this->withUserUnid($account)];
+            $this->app->db->transaction(function () use (&$data, $orderNo, $orderTitle, $orderAmount, $payCode, $payAmount) {
+                $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
+                $data = $this->updateAction($payCode, CodeExtend::uniqidDate(20), $payAmount, '无需支付');
             });
-            return ['code' => 1, 'info' => '订单无需支付'];
+            return ['code' => 1, 'info' => '订单无需支付', 'data' => $data, 'param' => []];
         } catch (\Exception $exception) {
             throw new Exception($exception->getMessage(), $exception->getCode());
         }
@@ -71,10 +72,10 @@ class Nullpay implements PaymentInterface
 
     /**
      * 订单主动查询
-     * @param string $orderno
+     * @param string $payCode
      * @return array
      */
-    public function query(string $orderno): array
+    public function query(string $payCode): array
     {
         return [];
     }

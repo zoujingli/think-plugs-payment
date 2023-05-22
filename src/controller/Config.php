@@ -147,9 +147,13 @@ class Config extends Controller
     public function types()
     {
         $this->types = Payment::types();
+        $this->config = sysdata('plugin.payment.config');
         if ($this->request->isGet()) {
             $this->fetch();
         } else {
+            sysdata('plugin.payment.config', $this->request->post([
+                'types', 'integral'
+            ]));
             $types = $this->request->post('types', []);
             foreach ($this->types as $k => $v) {
                 Payment::set($k, intval(in_array($k, $types)));

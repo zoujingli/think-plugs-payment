@@ -54,29 +54,30 @@ class Joinpay implements PaymentInterface
     }
 
     /**
-     * 创建订单支付参数
-     * @param AccountInterface $account 用户OPENID
+     * 创建支付订单
+     * @param AccountInterface $account 支付账号
      * @param string $orderNo 交易订单单号
-     * @param string $payAmount 交易订单金额（元）
-     * @param string $payTitle 交易订单名称
-     * @param string $payRemark 订单订单描述
-     * @param string $payReturn 完成回跳地址
+     * @param string $orderTitle 交易订单标题
+     * @param string $orderAmount 订单支付金额（元）
+     * @param string $payAmount 本次交易金额
+     * @param string $payRemark 交易订单描述
+     * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
-     * @return array
+     * @return array [code,info,data,param]
      * @throws \think\admin\Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $payAmount, string $payTitle, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
-        $this->withUserUnid($account);
+        [$payCode,] = [$this->withPayCode(), $this->withUserUnid($account)];
         $data = [
             'p0_Version'         => '1.0',
             'p1_MerchantNo'      => $this->config['mchid'],
-            'p2_OrderNo'         => $orderNo,
+            'p2_OrderNo'         => $payCode,
             'p3_Amount'          => $payAmount,
             'p4_Cur'             => '1',
-            'p5_ProductName'     => $payTitle,
+            'p5_ProductName'     => $orderTitle,
             'p6_ProductDesc'     => $payRemark,
-            'p9_NotifyUrl'       => $this->withNotifyUrl($orderNo),
+            'p9_NotifyUrl'       => $this->withNotifyUrl($payCode),
             'q1_FrpCode'         => self::tradeTypes[$this->cfgType] ?? '',
             'q5_OpenId'          => $this->withUserField($account, 'openid'),
             'q7_AppId'           => $this->config['appid'],
@@ -86,9 +87,9 @@ class Joinpay implements PaymentInterface
         $result = $this->_doReuest('uniPayApi.action', $data);
         if (isset($result['ra_Code']) && intval($result['ra_Code']) === 100) {
             // 创建支付记录
-            $this->createAction($orderNo, $payTitle, $payAmount);
+            $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
             // 返回支付参数
-            return json_decode($result['rc_Result'], true);
+            return ['code' => 1, 'info' => '创建支付成功', 'data' => $data, 'param' => json_decode($result['rc_Result'], true)];
         } else {
             throw new Exception($result['rb_CodeMsg'] ?? '获取预支付码失败！');
         }
@@ -96,12 +97,12 @@ class Joinpay implements PaymentInterface
 
     /**
      * 查询订单数据
-     * @param string $orderno
+     * @param string $payCode
      * @return array
      */
-    public function query(string $orderno): array
+    public function query(string $payCode): array
     {
-        return $this->_doReuest('queryOrder.action', ['p1_MerchantNo' => $this->config['mchid'], 'p2_OrderNo' => $orderno]);
+        return $this->_doReuest('queryOrder.action', ['p1_MerchantNo' => $this->config['mchid'], 'p2_OrderNo' => $payCode]);
     }
 
     /**

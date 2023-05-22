@@ -63,7 +63,7 @@
                         return laytpl('<div>当前状态：{{-d.typeInfo}}<br>{{d.typeLabel}}时间：{{d.typeDatetime}}</div>').render(d);
                     }
                 },
-                {field: 'name', title: '支付描述', minWidth: 100, templet: '<div>支付类型：{{d.payment_type_name||"-"}}<br>操作描述：{{d.payment_remark||"-"}}</div>'},
+                {field: 'name', title: '支付描述', minWidth: 100, templet: '<div>支付类型：{{d.channel_type_name||"-"}}<br>操作描述：{{d.payment_remark||"-"}}</div>'},
                 {field: 'id', title: '操作时间', minWidth: 235, sort: true, templet: '<div>更新时间：{{d.update_time||"-"}}<br>创建时间：{{d.create_time||"-"}}</div>'},
             ]]
         });

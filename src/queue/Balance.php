@@ -22,7 +22,7 @@ use plugin\account\model\PluginAccountUser;
 use think\admin\Queue;
 
 /**
- * 刷新用户余额
+ * 刷新用户余额和积分
  * @class Balance
  * @package think\admin\Queue
  */
@@ -36,16 +36,44 @@ class Balance extends Queue
      */
     public function execute(array $data = [])
     {
-        [$total, $count, $error] = [PluginAccountUser::mk()->count(), 0, 0];
+        $this->balance()->intergral()->setQueueSuccess('刷新用户余额及积分完成！');
+    }
+
+    /**
+     * 刷新用户余额
+     * @return static
+     * @throws \think\db\exception\DbException
+     */
+    private function balance(): Balance
+    {
+        [$total, $count] = [PluginAccountUser::mk()->count(), 0];
         foreach (PluginAccountUser::mk()->field('id')->cursor() as $user) try {
             $nick = $user['username'] ?: ($user['nickname'] ?: $user['email']);
             $this->queue->message($total, ++$count, "开始刷新用户 [{$user['id']} {$nick}] 余额");
             \plugin\payment\service\Balance::recount(intval($user['id']));
             $this->queue->message($total, $count, "刷新用户 [{$user['id']} {$nick}] 余额", 1);
         } catch (\Exception $exception) {
-            $error++;
             $this->queue->message($total, $count, "刷新用户 [{$user['id']} {$nick}] 余额失败, {$exception->getMessage()}", 1);
         }
-        $this->setQueueSuccess("此次共处理 {$total} 个刷新操作, 其中有 {$error} 个刷新失败。");
+        return $this;
+    }
+
+    /**
+     * 刷新用户积分
+     * @return static
+     * @throws \think\db\exception\DbException
+     */
+    private function intergral(): Balance
+    {
+        [$total, $count] = [PluginAccountUser::mk()->count(), 0];
+        foreach (PluginAccountUser::mk()->field('id')->cursor() as $user) try {
+            $nick = $user['username'] ?: ($user['nickname'] ?: $user['email']);
+            $this->queue->message($total, ++$count, "开始刷新用户 [{$user['id']} {$nick}] 积分");
+            \plugin\payment\service\Integral::recount(intval($user['id']));
+            $this->queue->message($total, $count, "刷新用户 [{$user['id']} {$nick}] 积分", 1);
+        } catch (\Exception $exception) {
+            $this->queue->message($total, $count, "刷新用户 [{$user['id']} {$nick}] 积分失败, {$exception->getMessage()}", 1);
+        }
+        return $this;
     }
 }

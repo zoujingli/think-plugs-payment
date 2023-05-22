@@ -23,7 +23,7 @@ use think\model\relation\HasOne;
 
 /**
  * 用户余额模型
- * Class PluginPaymentBalance
+ * @class PluginPaymentBalance
  * @package plugin\payment\model
  */
 class PluginPaymentBalance extends Abs

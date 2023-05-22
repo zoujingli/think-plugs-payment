@@ -44,6 +44,7 @@ composer remove zoujingli/think-plugs-payment
 
 * 插件-支付-地址：`plugin_payment_address`
 * 插件-支付-余额：`plugin_payment_balance`
+* 插件-支付-积分：`plugin_payment_integral`
 * 插件-支付-配置：`plugin_payment_config`
 * 插件-支付-行为：`plugin_payment_record`
 
