@@ -24,7 +24,7 @@ use think\admin\Exception;
 
 /**
  * 用户余额调度器
- * Class Balance
+ * @class Balance
  * @package plugin\payment\service
  */
 abstract class Balance
@@ -36,10 +36,11 @@ abstract class Balance
      * @param string $name 交易标题
      * @param float $amount 变更金额
      * @param string $remark 变更描述
+     * @param boolean $unlock 解锁状态
      * @return PluginPaymentBalance
      * @throws \think\admin\Exception
      */
-    public static function create(int $unid, string $code, string $name, float $amount, string $remark = ''): PluginPaymentBalance
+    public static function create(int $unid, string $code, string $name, float $amount, string $remark = '', bool $unlock = false): PluginPaymentBalance
     {
         $user = PluginAccountUser::mk()->findOrEmpty($unid);
         if ($user->isEmpty()) throw new Exception('账号不存在！');
@@ -61,7 +62,7 @@ abstract class Balance
             'amount'      => $amount,
             'remark'      => $remark,
             'status'      => 1,
-            'unlock'      => 0,
+            'unlock'      => $unlock ? 1 : 0,
             'unlock_time' => date('Y-m-d H:i:s'),
             //'create_by'   => AdminService::getUserId()
         ]);

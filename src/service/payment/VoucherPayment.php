@@ -22,25 +22,44 @@ use plugin\account\service\contract\AccountInterface;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\contract\PaymentUsageTrait;
 use think\admin\Exception;
-use think\admin\extend\CodeExtend;
 use think\Response;
 
 /**
- * 空支付支付方式
- * Class Nullpay
+ * 单据凭证支付方式
+ * @class Voucher
  * @package plugin\payment\service\payment
  */
-class Nullpay implements PaymentInterface
+class VoucherPayment implements PaymentInterface
 {
     use PaymentUsageTrait;
 
     /**
-     * 初始化支付通道
+     * 初始化支付方式
      * @return PaymentInterface
      */
     public function init(): PaymentInterface
     {
         return $this;
+    }
+
+    /**
+     * 订单数据查询
+     * @param string $payCode
+     * @return array
+     */
+    public function query(string $payCode): array
+    {
+        return [];
+    }
+
+    /**
+     * 支付通知处理
+     * @param array|null $data
+     * @return \think\Response
+     */
+    public function notify(?array $data = null): Response
+    {
+        return response();
     }
 
     /**
@@ -58,35 +77,9 @@ class Nullpay implements PaymentInterface
      */
     public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
-        try {
-            [$data, $payCode,] = [[], $this->withPayCode(), $this->withUserUnid($account)];
-            $this->app->db->transaction(function () use (&$data, $orderNo, $orderTitle, $orderAmount, $payCode, $payAmount) {
-                $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
-                $data = $this->updateAction($payCode, CodeExtend::uniqidDate(20), $payAmount, '无需支付');
-            });
-            return ['code' => 1, 'info' => '订单无需支付', 'data' => $data, 'param' => []];
-        } catch (\Exception $exception) {
-            throw new Exception($exception->getMessage(), $exception->getCode());
-        }
-    }
-
-    /**
-     * 订单主动查询
-     * @param string $payCode
-     * @return array
-     */
-    public function query(string $payCode): array
-    {
-        return [];
-    }
-
-    /**
-     * 支付通知处理
-     * @param array|null $data
-     * @return \think\Response
-     */
-    public function notify(?array $data = null): Response
-    {
-        return response();
+        if (empty($payImages)) throw new Exception('凭证不能为空！');
+        [$payCode,] = [$this->withPayCode(), $this->withUserUnid($account)];
+        $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, $payImages);
+        return ['code' => 1, 'info' => '凭证上传成功！', 'data' => $data, 'param' => []];
     }
 }

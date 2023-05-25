@@ -20,23 +20,27 @@ namespace plugin\payment\service\payment\wechat;
 
 use plugin\account\service\contract\AccountInterface;
 use plugin\payment\service\contract\PaymentInterface;
-use plugin\payment\service\payment\Wechat;
+use plugin\payment\service\contract\PaymentUsageTrait;
+use plugin\payment\service\Payment;
+use plugin\payment\service\payment\WechatPayment;
 use think\admin\Exception;
 use think\Response;
-use WePay\Order;
+use WePayV3\Order;
 
 /**
- * 微信支付 V2 版本
- * @class WechatV2
+ * 微信支付 V3 版本
+ * @class WechatPaymentV3
  * @package plugin\payment\service\payment\wechat
  */
-class WechatV2 extends Wechat
+class WechatPaymentV3 extends WechatPayment
 {
-    /** @var Order */
+    use PaymentUsageTrait;
+
+    /** @var \WePayV3\Order */
     private $payment;
 
     /**
-     * 初始化支付通道
+     * 支付通道初始化
      * @return PaymentInterface
      */
     public function init(): PaymentInterface
@@ -65,26 +69,27 @@ class WechatV2 extends Wechat
             [$payCode] = [$this->withPayCode(), $this->withUserUnid($account)];
             $body = empty($orderRemark) ? $orderTitle : ($orderTitle . '-' . $orderRemark);
             $data = [
-                'body'             => $body,
-                'openid'           => $this->withUserField($account, 'openid'),
-                'attach'           => $this->cfgCode,
-                'out_trade_no'     => $payCode,
-                'trade_type'       => static::tradeTypes[$this->cfgType] ?? '',
-                'total_fee'        => $payAmount * 100,
-                'notify_url'       => $this->withNotifyUrl($payCode),
-                'spbill_create_ip' => $this->app->request->ip(),
+                'appid'        => $this->config['appid'],
+                'mchid'        => $this->config['mch_id'],
+                'payer'        => ['openid' => $this->withUserField($account, 'openid')],
+                'amount'       => ['total' => intval($payAmount * 100), 'currency' => 'CNY'],
+                'notify_url'   => $this->withNotifyUrl($payCode),
+                'description'  => $body,
+                'out_trade_no' => $payCode,
             ];
-            if (empty($data['openid'])) unset($data['openid']);
-            $info = $this->payment->create($data);
-            if ($info['return_code'] === 'SUCCESS' && $info['result_code'] === 'SUCCESS') {
-                // 支付参数过滤
-                $param = isset($info['prepay_id']) ? $this->payment->jsapiParams($info['prepay_id']) : $info;
-                // 创建支付记录
-                $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
-                // 返回支付参数
-                return ['code' => 1, 'info' => '创建支付成功', 'data' => $data, 'param' => $param];
+            $tradeType = static::tradeTypes[$this->cfgType] ?? '';
+            if (in_array($this->cfgType, [Payment::WECHAT_WAP, Payment::WECHAT_QRC])) {
+                unset($data['payer']);
             }
-            throw new Exception($info['err_code_des'] ?? '获取预支付码失败！');
+            if ($this->cfgType === Payment::WECHAT_WAP) {
+                $tradeType = 'h5';
+                $data['scene_info'] = ['h5_info' => ['type' => 'Wap'], 'payer_client_ip' => request()->ip()];
+            }
+            $param = $this->payment->create(strtolower($tradeType), $data);
+            // 创建支付记录
+            $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
+            // 返回支付参数
+            return ['code' => 1, 'info' => '创建支付成功', 'data' => $data, 'param' => $param];
         } catch (Exception $exception) {
             throw $exception;
         } catch (\Exception $exception) {
@@ -94,39 +99,41 @@ class WechatV2 extends Wechat
 
     /**
      * 查询微信支付订单
-     * @param string $payCode 支付号
+     * @param string $payCode 订单单号
      * @return array
-     * @throws \WeChat\Exceptions\InvalidResponseException
-     * @throws \WeChat\Exceptions\LocalCacheException
      */
     public function query(string $payCode): array
     {
-        $result = $this->payment->query(['out_trade_no' => $payCode]);
-        if (isset($result['return_code']) && isset($result['result_code']) && isset($result['attach'])) {
-            if ($result['return_code'] === 'SUCCESS' && $result['result_code'] === 'SUCCESS') {
-                $this->updateAction($result['out_trade_no'], strval($result['cash_fee'] / 100), $result['transaction_id']);
+        try {
+            $result = $this->payment->query($payCode);
+            if (isset($result['trade_state']) && $result['trade_state'] === 'SUCCESS') {
+                $this->updateAction($result['out_trade_no'], strval($result['amount']['total'] / 100), $result['transaction_id'] ?? '');
             }
+            return $result;
+        } catch (\Exception $exception) {
+            return ['trade_state' => 'ERROR', 'trade_state_desc' => $exception->getMessage()];
         }
-        return $result;
     }
 
     /**
      * 支付结果处理
      * @param array|null $data
      * @return \think\Response
-     * @throws \WeChat\Exceptions\InvalidResponseException
      */
     public function notify(?array $data = null): Response
     {
-        $notify = $data ?: $this->payment->getNotify();
-        if ($notify['result_code'] == 'SUCCESS' && $notify['return_code'] == 'SUCCESS') {
-            if ($this->updateAction($notify['out_trade_no'], $notify['transaction_id'], strval($notify['cash_fee'] / 100))) {
-                return xml(['return_code' => 'SUCCESS', 'return_msg' => 'OK']);
+        try {
+            $notify = $data ?: $this->payment->notify();
+            if (($result = $notify['result'] ?? []) && isset($result['trade_state']) && $result['trade_state'] == 'SUCCESS') {
+                if ($this->updateAction($result['out_trade_no'], $result['transaction_id'], strval($result['amount']['payer_total'] / 100))) {
+                    return response('success');
+                }
+                return json(['code' => 'FAIL', 'message' => 'Failed to modify order status.'])->code(500);
             } else {
-                return response('error');
+                return response('success');
             }
-        } else {
-            return xml(['return_code' => 'SUCCESS', 'return_msg' => 'OK']);
+        } catch (\Exception $exception) {
+            return json(['code' => 'FAIL', 'message' => $exception->getMessage()])->code(500);
         }
     }
 }

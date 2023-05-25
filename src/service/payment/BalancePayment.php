@@ -28,10 +28,10 @@ use think\Response;
 
 /**
  * 账户余额支付方式
- * @class Balance
+ * @class BalancePayment
  * @package plugin\payment\service\payment
  */
-class Balance implements PaymentInterface
+class BalancePayment implements PaymentInterface
 {
     use PaymentUsageTrait;
 
@@ -80,6 +80,7 @@ class Balance implements PaymentInterface
     public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
         try {
+            $this->checkLeaveAmount($orderNo, $payAmount, $orderAmount);
             [$data, $unid, $payCode] = [[], $this->withUserUnid($account), $this->withPayCode()];
             $this->app->db->transaction(function () use (&$data, $unid, $orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, $payRemark) {
                 // 检查能否支付
@@ -88,7 +89,7 @@ class Balance implements PaymentInterface
                 // 创建支付行为
                 $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, '', $payAmount);
                 // 扣除余额金额
-                BalanceService::create($unid, $orderNo, $orderTitle, -floatval($payAmount), $payRemark);
+                BalanceService::create($unid, $orderNo, $orderTitle, -floatval($payAmount), $payRemark, true);
                 // 更新支付行为
                 $data = $this->updateAction($payCode, CodeExtend::uniqidDate(20), $payAmount, '账户余额支付');
             });

@@ -21,16 +21,16 @@ namespace plugin\payment\service\payment;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\contract\PaymentUsageTrait;
 use plugin\payment\service\Payment;
-use plugin\payment\service\payment\wechat\WechatV2;
-use plugin\payment\service\payment\wechat\WechatV3;
+use plugin\payment\service\payment\wechat\WechatPaymentV2;
+use plugin\payment\service\payment\wechat\WechatPaymentV3;
 use think\admin\storage\LocalStorage;
 
 /**
  * 微信商户支付方式
- * Class Wechat
+ * @class WechatPayment
  * @package plugin\payment\service\payment
  */
-abstract class Wechat implements PaymentInterface
+abstract class WechatPayment implements PaymentInterface
 {
     use PaymentUsageTrait;
 
@@ -49,14 +49,14 @@ abstract class Wechat implements PaymentInterface
      * @param array $params
      * @return PaymentInterface
      */
-    public static function make(string $code, string $type, array $params): PaymentInterface
+    public static function mk(string $code, string $type, array $params): PaymentInterface
     {
         if (isset($params['wechat_mch_ver']) && $params['wechat_mch_ver'] === 'v3') {
             /** @var PaymentInterface */
-            return app(WechatV3::class, ['code' => $code, 'type' => $type, 'params' => $params]);
+            return app(WechatPaymentV3::class, ['code' => $code, 'type' => $type, 'params' => $params]);
         } else {
             /** @var PaymentInterface */
-            return app(WechatV2::class, ['code' => $code, 'type' => $type, 'params' => $params]);
+            return app(WechatPaymentV2::class, ['code' => $code, 'type' => $type, 'params' => $params]);
         }
     }
 

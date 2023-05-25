@@ -19,15 +19,16 @@ declare (strict_types=1);
 namespace plugin\payment\service;
 
 use plugin\account\service\Account;
+use plugin\account\service\contract\AccountInterface;
 use plugin\payment\model\PluginPaymentConfig;
 use plugin\payment\model\PluginPaymentRecord;
 use plugin\payment\service\contract\PaymentInterface;
-use plugin\payment\service\payment\Alipay;
-use plugin\payment\service\payment\Balance;
-use plugin\payment\service\payment\Joinpay;
-use plugin\payment\service\payment\Nullpay;
-use plugin\payment\service\payment\Voucher;
-use plugin\payment\service\payment\Wechat;
+use plugin\payment\service\payment\AliPayment;
+use plugin\payment\service\payment\BalancePayment;
+use plugin\payment\service\payment\EmptyPayment;
+use plugin\payment\service\payment\IntegralPayment;
+use plugin\payment\service\payment\VoucherPayment;
+use plugin\payment\service\payment\WechatPayment;
 use think\admin\Exception;
 
 /**
@@ -39,7 +40,7 @@ abstract class Payment
 {
 
     // 用户余额支付
-    const NULLPAY = 'nullpay';
+    const EMPTY = 'empty';
     const BALANCE = 'balance';
     const VOUCHER = 'voucher';
     const INTEGRAL = 'integral';
@@ -67,16 +68,16 @@ abstract class Payment
     // 支付方式配置
     private static $types = [
         // 空支付，金额为零时自动完成支付
-        self::NULLPAY     => [
+        self::EMPTY      => [
             'name'    => '订单无需支付',
-            'class'   => Nullpay::class,
+            'class'   => EmptyPayment::class,
             'status'  => 1,
             'account' => [],
         ],
         // 余额支付，使用账户余额支付
-        self::BALANCE     => [
+        self::BALANCE    => [
             'name'    => '账户余额支付',
-            'class'   => Balance::class,
+            'class'   => BalancePayment::class,
             'status'  => 1,
             'account' => [
                 Account::WAP,
@@ -88,9 +89,9 @@ abstract class Payment
             ],
         ],
         // 积分抵扣，使用账户积分抵扣
-        self::INTEGRAL    => [
+        self::INTEGRAL   => [
             'name'    => '账户积分抵扣',
-            'class'   => Balance::class,
+            'class'   => IntegralPayment::class,
             'status'  => 1,
             'account' => [
                 Account::WAP,
@@ -102,9 +103,9 @@ abstract class Payment
             ],
         ],
         // 凭证支付，上传凭证后台审核支付
-        self::VOUCHER     => [
+        self::VOUCHER    => [
             'name'    => '单据凭证支付',
-            'class'   => Voucher::class,
+            'class'   => VoucherPayment::class,
             'status'  => 1,
             'account' => [
                 Account::WAP,
@@ -116,83 +117,91 @@ abstract class Payment
             ],
         ],
         // 微信支付配置（不需要的直接注释）
-        self::WECHAT_WAP  => [
+        self::WECHAT_WAP => [
             'name'    => '微信WAP支付',
-            'class'   => Wechat::class,
+            'class'   => WechatPayment::class,
             'status'  => 1,
             'account' => [Account::WAP],
         ],
-        self::WECHAT_APP  => [
+        self::WECHAT_APP => [
             'name'    => '微信APP支付',
-            'class'   => Wechat::class,
+            'class'   => WechatPayment::class,
             'status'  => 1,
             'account' => [Account::IOSAPP, Account::ANDROID],
         ],
-        self::WECHAT_XCX  => [
+        self::WECHAT_XCX => [
             'name'    => '微信小程序支付',
-            'class'   => Wechat::class,
+            'class'   => WechatPayment::class,
             'status'  => 1,
             'account' => [Account::WXAPP],
         ],
-        self::WECHAT_GZH  => [
+        self::WECHAT_GZH => [
             'name'    => '微信公众号支付',
-            'class'   => Wechat::class,
+            'class'   => WechatPayment::class,
             'status'  => 1,
             'account' => [Account::WECHAT],
         ],
-        self::WECHAT_QRC  => [
+        self::WECHAT_QRC => [
             'name'    => '微信二维码支付',
-            'class'   => Wechat::class,
+            'class'   => WechatPayment::class,
             'status'  => 1,
             'account' => [Account::WEB],
         ],
         // 支付宝支持配置（不需要的直接注释）
-        self::ALIPAY_WAP  => [
+        self::ALIPAY_WAP => [
             'name'    => '支付宝WAP支付',
-            'class'   => Alipay::class,
+            'class'   => AliPayment::class,
             'status'  => 1,
             'account' => [Account::WAP],
         ],
-        self::ALIPAY_WEB  => [
+        self::ALIPAY_WEB => [
             'name'    => '支付宝WEB支付',
-            'class'   => Alipay::class,
+            'class'   => AliPayment::class,
             'status'  => 1,
             'account' => [Account::WEB],
         ],
-        self::ALIAPY_APP  => [
+        self::ALIAPY_APP => [
             'name'    => '支付宝APP支付',
-            'class'   => Alipay::class,
+            'class'   => AliPayment::class,
             'status'  => 1,
             'account' => [Account::ANDROID, Account::IOSAPP],
         ],
         // 汇聚支持配置（不需要的直接注释）
-        self::JOINPAY_XCX => [
+        /* self::JOINPAY_XCX => [
             'name'    => '汇聚小程序支付',
-            'class'   => Joinpay::class,
+            'class'   => JoinPayment::class,
             'status'  => 1,
             'account' => [Account::WXAPP],
         ],
         self::JOINPAY_GZH => [
             'name'    => '汇聚公众号支付',
-            'class'   => Joinpay::class,
+            'class'   => JoinPayment::class,
             'status'  => 1,
             'account' => [Account::WECHAT],
-        ],
+        ], */
     ];
 
     /**
-     * 实例支付通道
-     * @param string $code 支付编号或空支付类型
+     * 实例化支付通道
+     * @param string $code 编号或类型
      * @return PaymentInterface
      * @throws \think\admin\Exception
      */
     public static function mk(string $code): PaymentInterface
     {
-        if ($code === self::NULLPAY) {
-            return Nullpay::make(self::NULLPAY, self::NULLPAY, []);
+        if (in_array($code, [self::EMPTY, self::BALANCE, self::INTEGRAL])) {
+            if (empty(self::$types[$code]['status'])) {
+                throw new Exception(self::typeName($code) . '已被禁用！');
+            } else {
+                return self::$types[$code]['class']::mk($code, $code, []);
+            }
         } else {
             [$type, $attr, $params] = self::params($code);
-            return $attr['class']::make($code, $type, $params);
+            if (self::typeStatus($type)) {
+                return $attr['class']::mk($code, $type, $params);
+            } else {
+                throw new Exception(self::typeName($type) . '已被禁用！');
+            }
         }
     }
 
@@ -229,7 +238,6 @@ abstract class Payment
             if (empty($config)) {
                 throw new Exception("支付通道[#{$code}]参数异常！");
             }
-
             $params = is_string($config['content']) ? @json_decode($config['content'], true) : $config['content'];
             if (empty($params)) throw new Exception("支付通道[#{$code}]参数无效！");
 
@@ -339,14 +347,12 @@ abstract class Payment
 
     /**
      * 读取支付通道
-     * @param boolean $allow
      * @return array
      */
-    public static function items(bool $allow = false): array
+    public static function items(): array
     {
         $map = ['status' => 1, 'deleted' => 0];
-        $items = $allow ? ['all' => ['type' => 'all', 'code' => 'all', 'name' => '全部支付']] : [];
-        return $items + PluginPaymentConfig::mk()->where($map)->order('sort desc,id desc')->column('type,code,name', 'code');
+        return PluginPaymentConfig::mk()->where($map)->order('sort desc,id desc')->column('type,code,name', 'code');
     }
 
     /**
@@ -359,17 +365,49 @@ abstract class Payment
         return self::$types[$type]['name'] ?? $type;
     }
 
+    /**
+     * 判断支付类型状态
+     * @param string $type
+     * @return bool
+     */
+    public static function typeStatus(string $type): bool
+    {
+        return !empty(self::$types[$type]['status']);
+    }
 
     /**
      * 判断是否完成支付
-     * @param string $order_no 原订单号
+     * @param string $orderNo 原订单号
      * @param string $amount 需要支付金额
      * @return boolean
      */
-    public static function isPayed(string $order_no, string $amount): bool
+    public static function isPayed(string $orderNo, string $amount): bool
     {
-        $map = ['order_no' => $order_no, 'payment_status' => 1];
-        $payed = PluginPaymentRecord::mk()->where($map)->sum('payment_amount');
-        return $payed >= floatval($amount);
+        return self::leaveAmount($orderNo) >= floatval($amount);
+    }
+
+    /**
+     * 获取已支付金额
+     * @param string $orderNo
+     * @return float
+     */
+    public static function leaveAmount(string $orderNo): float
+    {
+        $map = ['order_no' => $orderNo, 'payment_status' => 1];
+        return PluginPaymentRecord::mk()->where($map)->sum('payment_amount');
+    }
+
+    /**
+     * 创建订单空支付
+     * @param AccountInterface $account
+     * @param string $orderNo 订单单号
+     * @param string $title 订单标题
+     * @param string $remark 订单描述
+     * @return array
+     * @throws \think\admin\Exception
+     */
+    public static function emptyPayment(AccountInterface $account, string $orderNo, string $title = '商城订单支付', string $remark = '订单金额为0，无需要支付'): array
+    {
+        return self::mk(self::EMPTY)->create($account, $orderNo, $title, '0.00', '0.00', $remark);
     }
 }

@@ -28,10 +28,11 @@ use think\Response;
 
 /**
  * 汇聚支付方式
- * Class Joinpay
+ * @class JoinPayment
  * @package plugin\payment\service\payment
+ * @deprecated 未来看情况是否启用
  */
-class Joinpay implements PaymentInterface
+class JoinPayment implements PaymentInterface
 {
     use PaymentUsageTrait;
 

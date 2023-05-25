@@ -69,8 +69,8 @@ class InstallPayment extends Migrator
             ->addIndex('type', ['name' => 'idx_plugin_payment_address_type'])
             ->addIndex('unid', ['name' => 'idx_plugin_payment_address_unid'])
             ->addIndex('deleted', ['name' => 'idx_plugin_payment_address_deleted'])
-            ->addIndex('user_phone', ['name' => 'idx_plugin_payment_address_user_phone'])
             ->addIndex('create_time', ['name' => 'idx_plugin_payment_address_create_time'])
+            ->addIndex('user_phone', ['name' => 'idx_plugin_payment_address_user_phone'])
             ->create();
 
         // 修改主键长度
@@ -207,11 +207,11 @@ class InstallPayment extends Migrator
             ->addIndex('usid', ['name' => 'idx_plugin_payment_record_usid'])
             ->addIndex('code', ['name' => 'idx_plugin_payment_record_code'])
             ->addIndex('order_no', ['name' => 'idx_plugin_payment_record_order_no'])
+            ->addIndex('payment_trade', ['name' => 'idx_plugin_payment_record_payment_trade'])
+            ->addIndex('payment_status', ['name' => 'idx_plugin_payment_record_payment_status'])
             ->addIndex('create_time', ['name' => 'idx_plugin_payment_record_create_time'])
             ->addIndex('channel_type', ['name' => 'idx_plugin_payment_record_channel_type'])
             ->addIndex('channel_code', ['name' => 'idx_plugin_payment_record_channel_code'])
-            ->addIndex('payment_trade', ['name' => 'idx_plugin_payment_record_payment_trade'])
-            ->addIndex('payment_status', ['name' => 'idx_plugin_payment_record_payment_status'])
             ->create();
 
         // 修改主键长度

@@ -21,21 +21,23 @@ namespace plugin\payment\service\payment;
 use plugin\account\service\contract\AccountInterface;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\contract\PaymentUsageTrait;
+use plugin\payment\service\Integral as IntegralService;
 use think\admin\Exception;
+use think\admin\extend\CodeExtend;
 use think\Response;
 
 /**
- * 单据凭证支付方式
- * Class Voucher
+ * 账户积分支付方式
+ * @class IntegralPayment
  * @package plugin\payment\service\payment
  */
-class Voucher implements PaymentInterface
+class IntegralPayment implements PaymentInterface
 {
     use PaymentUsageTrait;
 
     /**
-     * 初始化支付方式
-     * @return PaymentInterface
+     * 初始化支付通道
+     * @return $this
      */
     public function init(): PaymentInterface
     {
@@ -43,7 +45,7 @@ class Voucher implements PaymentInterface
     }
 
     /**
-     * 订单数据查询
+     * 订单信息查询
      * @param string $payCode
      * @return array
      */
@@ -53,13 +55,25 @@ class Voucher implements PaymentInterface
     }
 
     /**
+     * 积分抵扣金额比例
+     * @return float
+     * @throws \think\admin\Exception
+     */
+    public static function toAmountRatio(): float
+    {
+        $cfg = sysdata('plugin.payment.config');
+        if (empty($cfg['integral']) || $cfg['integral'] < 1) $cfg['integral'] = 1;
+        return 1 / floatval($cfg['integral']);
+    }
+
+    /**
      * 支付通知处理
      * @param array|null $data
      * @return \think\Response
      */
-    public function notify(?array $data = null): Response
+    public function notify(?array $data = []): Response
     {
-        return response();
+        return response('SUCCESS');
     }
 
     /**
@@ -68,7 +82,7 @@ class Voucher implements PaymentInterface
      * @param string $orderNo 交易订单单号
      * @param string $orderTitle 交易订单标题
      * @param string $orderAmount 订单支付金额（元）
-     * @param string $payAmount 本次交易金额
+     * @param string $payAmount 本次交易积分
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
@@ -77,9 +91,29 @@ class Voucher implements PaymentInterface
      */
     public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark, string $payReturn = '', string $payImages = ''): array
     {
-        if (empty($payImages)) throw new Exception('凭证不能为空！');
-        [$payCode,] = [$this->withPayCode(), $this->withUserUnid($account)];
-        $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, $payImages);
-        return ['code' => 1, 'info' => '凭证上传成功！', 'data' => $data, 'param' => []];
+        try {
+            $ratio = self::toAmountRatio();
+            $unid = $this->withUserUnid($account);
+            $integral = IntegralService::recount($unid);
+            if ($payAmount > $integral['integral_usable']) throw new Exception('可抵扣的积分不足');
+            $realAmount = $this->checkLeaveAmount($orderNo, sprintf('%01.2f', $payAmount * $ratio), $orderAmount);
+            [$data, $payCode] = [[], $this->withPayCode()];
+            $this->app->db->transaction(function () use (&$data, $unid, $realAmount, $orderNo, $orderAmount, $orderTitle, $payCode, $payAmount, $payRemark) {
+                // 创建支付行为
+                $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, strval($realAmount), '', '0.00', $payAmount);
+                // 扣除积分金额
+                IntegralService::create($unid, $orderNo, $orderTitle, -floatval($payAmount), $payRemark, true);
+                // 更新支付行为
+                $data = $this->updateAction($payCode, CodeExtend::uniqidDate(20), $payAmount, '账户积分支付');
+            });
+            // 刷新用户积分
+            IntegralService::recount($unid);
+            // 返回支付结果
+            return ['code' => 1, 'info' => '积分抵扣完成', 'data' => $data, 'param' => []];
+        } catch (Exception $exception) {
+            throw $exception;
+        } catch (\Exception $exception) {
+            throw new Exception($exception->getMessage(), $exception->getCode());
+        }
     }
 }

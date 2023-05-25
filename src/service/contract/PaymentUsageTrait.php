@@ -20,6 +20,7 @@ namespace plugin\payment\service\contract;
 
 use plugin\account\service\contract\AccountInterface;
 use plugin\payment\model\PluginPaymentRecord;
+use plugin\payment\service\Payment;
 use think\admin\Exception;
 use think\admin\extend\CodeExtend;
 use think\App;
@@ -84,7 +85,7 @@ trait PaymentUsageTrait
      * @param array $params
      * @return \plugin\payment\service\contract\PaymentInterface
      */
-    public static function make(string $code, string $type, array $params): PaymentInterface
+    public static function mk(string $code, string $type, array $params): PaymentInterface
     {
         /** @var \plugin\payment\service\contract\PaymentInterface */
         return app(static::class, ['code' => $code, 'type' => $type, 'params' => $params]);
@@ -95,6 +96,22 @@ trait PaymentUsageTrait
      * @return PaymentInterface
      */
     abstract public function init(): PaymentInterface;
+
+    /**
+     * 检查订单支付金额
+     * @param string $orderNo
+     * @param mixed $payAmount
+     * @param mixed $orderAmount
+     * @return float
+     * @throws \think\admin\Exception
+     */
+    protected function checkLeaveAmount($orderNo, $payAmount, $orderAmount): float
+    {
+        if (floatval($payAmount) + Payment::leaveAmount($orderNo) > floatval($orderAmount)) {
+            throw new Exception("支付总额超订单金额！");
+        }
+        return floatval($payAmount);
+    }
 
     /**
      * 创建支付行为

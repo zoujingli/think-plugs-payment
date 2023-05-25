@@ -30,10 +30,10 @@ use think\Response;
 
 /**
  * 支付宝支付通道
- * @class Alipay
+ * @class AliPayment
  * @package plugin\payment\service\payment
  */
-class Alipay implements PaymentInterface
+class AliPayment implements PaymentInterface
 {
     use PaymentUsageTrait;
 
