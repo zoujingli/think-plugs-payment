@@ -8,11 +8,19 @@
 [![PHP Version](https://doc.thinkadmin.top/static/icon/php-7.1.svg)](https://thinkadmin.top)
 [![License](https://doc.thinkadmin.top/static/icon/license-vip.svg)](https://thinkadmin.top/vip-introduce)
 
-**注意：** 该插件测试版有数据库结构变化，未生成补丁，需要全新安装！]
+**注意：** 该插件测试版有数据库结构变化，未生成升级补丁，每次更新需要全新安装！]
 
 用户支付管理，此插件为[会员尊享插件](https://thinkadmin.top/vip-introduce)，未授权不可商用。
 
-文档整理中...
+支付类型主要定义为两种类型，分别为：线上支付和线下支持。
+
+* 线下支付包含：账户余额支付、账户积分抵扣。
+* 线上支付包含：各种类型的微信支付、种种类型的支付宝支付、大额凭证支付。
+
+目前同一业务订单支付混合支付，由业务系统负责传入对应订单总金额及此次支付金额。
+通过已完成的支付总额来判断该业务订单是否已经支付完成，可以在事件回调中进行订单状态刷新处理。
+
+**TODO:** 子支付单后面会支持独立退款操作。
 
 ### 开放接口
 
