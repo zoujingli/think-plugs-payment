@@ -36,6 +36,8 @@ class Address extends Auth
 
     /**
      * 修改地址
+     * @return void
+     * @throws \think\db\exception\DbException
      */
     public function set()
     {
@@ -56,9 +58,16 @@ class Address extends Auth
             'region_addr.require' => '地址不能为空！',
         ]);
 
+        if (empty($data['id'])) {
+            unset($data['id']);
+            $map = ['unid' => $this->unid, 'deleted' => 0];
+            if (PluginPaymentAddress::mk()->where($map)->count() >= 10) {
+                $this->error('最多只能添加十个收货地址！');
+            }
+        }
+
         // 设置默认值
         $model = $this->withDefault(intval($data['id']), intval($data['type']), true);
-        if (empty($data['id'])) unset($data['id']);
 
         // 保存收货地址
         if ($model->save($data) && $model->isExists()) {
@@ -138,7 +147,6 @@ class Address extends Auth
     private function withDefault(int $id = 0, int $type = 1, bool $force = false): PluginPaymentAddress
     {
         $model = $this->withModel(['id' => $id])->findOrEmpty();
-
         if ($model->isExists() && intval($model->getAttr('type')) !== $type) {
             $model->save(['type' => $type]);
         }

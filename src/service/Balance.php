@@ -112,7 +112,7 @@ abstract class Balance
     /**
      * 刷新用户余额
      * @param integer $unid
-     * @return array
+     * @return array [lock,used,total,usable]
      * @throws \think\admin\Exception
      */
     public static function recount(int $unid): array
@@ -126,14 +126,13 @@ abstract class Balance
         $used = PluginPaymentBalance::mk()->where($map)->where('amount', '<', '0')->sum('amount');
         $total = PluginPaymentBalance::mk()->where($map)->where('amount', '>', '0')->sum('amount');
 
-        // 更新用户余额统计
+        // 更新余额统计
         $data = [
             'balance_lock'  => $lock, 'balance_used' => abs($used),
             'balance_total' => $total, 'balance_usable' => $total - abs($used),
         ];
-        $user->setAttr('extra', array_merge($user->getAttr('extra'), $data));
-        $user->save();
-        return $data;
+        $user->save(['extra' => array_merge($user->getAttr('extra'), $data)]);
+        return ['lock' => $lock, 'used' => abs($used), 'total' => $total, 'usable' => $data['balance_usable']];
     }
 
     /**

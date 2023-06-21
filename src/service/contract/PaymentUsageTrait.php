@@ -20,6 +20,7 @@ namespace plugin\payment\service\contract;
 
 use plugin\account\service\contract\AccountInterface;
 use plugin\payment\model\PluginPaymentRecord;
+use plugin\payment\model\PluginPaymentRefund;
 use plugin\payment\service\Payment;
 use think\admin\Exception;
 use think\admin\extend\CodeExtend;
@@ -241,5 +242,27 @@ trait PaymentUsageTrait
         $data = ['scen' => $scene, 'order' => $order, 'code' => $this->cfgCode];
         $vars = CodeExtend::enSafe64(json_encode($extra + $data, 64 | 256));
         return sysuri('@plugin-payment-notify', [], false, true) . "/{$vars}";
+    }
+
+    /**
+     * 检查支付退款
+     * @param string $pcode 子支付单号
+     * @param string $amount 退款金额
+     * @return \plugin\payment\model\PluginPaymentRecord
+     * @throws \think\admin\Exception
+     */
+    protected function checkRefund(string $pcode, string $amount): PluginPaymentRecord
+    {
+        $record = PluginPaymentRecord::mk()->where(['code' => $pcode])->findOrEmpty();
+        if ($record->isEmpty()) throw new Exception("原支付记录不存在！");
+        if ($record->getAttr('payment_status') !== 1) throw new Exception("该支付尚未完成！");
+        $refundAmount = PluginPaymentRefund::mk()->where(['record_code' => $pcode])->sum('refund_amount');
+        if ($refundAmount >= $record->getAttr('payment_amount')) {
+            throw new Exception("该支付已完成退款！");
+        }
+        if ($refundAmount + floatval($amount) > $record->getAttr('payment_amount')) {
+            throw new Exception("该支付退款总额已超出！");
+        }
+        return $record;
     }
 }

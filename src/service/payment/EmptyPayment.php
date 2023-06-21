@@ -72,10 +72,10 @@ class EmptyPayment implements PaymentInterface
 
     /**
      * 订单主动查询
-     * @param string $payCode
+     * @param string $pcode
      * @return array
      */
-    public function query(string $payCode): array
+    public function query(string $pcode): array
     {
         return [];
     }
@@ -88,5 +88,17 @@ class EmptyPayment implements PaymentInterface
     public function notify(?array $data = null): Response
     {
         return response();
+    }
+
+    /**
+     * 子支付单退款
+     * @param string $pcode
+     * @param string $amount
+     * @return array
+     * @todo 写退款流程
+     */
+    public function refund(string $pcode, string $amount): array
+    {
+        return [];
     }
 }

@@ -19,8 +19,10 @@ declare (strict_types=1);
 namespace plugin\payment\service\payment;
 
 use plugin\account\service\contract\AccountInterface;
+use plugin\payment\model\PluginPaymentRefund;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\contract\PaymentUsageTrait;
+use plugin\payment\service\Integral;
 use plugin\payment\service\Integral as IntegralService;
 use think\admin\Exception;
 use think\admin\extend\CodeExtend;
@@ -46,10 +48,10 @@ class IntegralPayment implements PaymentInterface
 
     /**
      * 订单信息查询
-     * @param string $payCode
+     * @param string $pcode
      * @return array
      */
-    public function query(string $payCode): array
+    public function query(string $pcode): array
     {
         return [];
     }
@@ -77,6 +79,36 @@ class IntegralPayment implements PaymentInterface
     }
 
     /**
+     * 子支付单退款
+     * @param string $pcode 子支付单号
+     * @param string $amount 退款金额（元）
+     * @return array
+     * @throws \think\admin\Exception
+     */
+    public function refund(string $pcode, string $amount): array
+    {
+        $pay = $this->checkRefund($pcode, $amount);
+        $code = CodeExtend::uniqidNumber(16, 'R');
+        $model = PluginPaymentRefund::mk()->whereRaw('1<>1')->findOrEmpty();
+        $integral = floatval($amount) / floatval($pay->getAttr('payment_amount')) * $pay->getAttr('used_integral');
+        $this->app->db->transaction(function () use ($pay, $code, &$model, $amount, $integral) {
+            $model->save(array_merge($pay->toArray(), [
+                'code'          => $code,
+                'record_code'   => $pay->getAttr('code'),
+                'refund_amount' => $amount,
+                'refund_status' => 1,
+                'refund_time'   => date('Y-m-d H:i:s'),
+                'used_integral' => $integral
+            ]));
+            Integral::create($pay->getAttr('unid'), $code, "来自订单 {$pay->getAttr('order_no')} 退回积分", $integral, '', true);
+            // 刷新退款金额
+            $refundAmount = PluginPaymentRefund::mk()->where(['record_code' => $pay->getAttr('code')])->sum('refund_amount');
+            $pay->save(['refund_status' => 1, 'refund_amount' => $refundAmount]);
+        });
+        return $model->toArray();
+    }
+
+    /**
      * 创建支付订单
      * @param AccountInterface $account 支付账号
      * @param string $orderNo 交易订单单号
@@ -95,7 +127,7 @@ class IntegralPayment implements PaymentInterface
             $ratio = self::toAmountRatio();
             $unid = $this->withUserUnid($account);
             $integral = IntegralService::recount($unid);
-            if ($payAmount > $integral['integral_usable']) throw new Exception('可抵扣的积分不足');
+            if ($payAmount > $integral['usable']) throw new Exception('可抵扣的积分不足');
             $realAmount = $this->checkLeaveAmount($orderNo, sprintf('%01.2f', $payAmount * $ratio), $orderAmount);
             [$data, $payCode] = [[], $this->withPayCode()];
             $this->app->db->transaction(function () use (&$data, $unid, $realAmount, $orderNo, $orderAmount, $orderTitle, $payCode, $payAmount, $payRemark) {

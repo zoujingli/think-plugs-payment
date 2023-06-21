@@ -87,6 +87,9 @@ class Config extends Controller
             $data['content'] = $data['content'] ?? [];
             [$this->payments, $types] = [[], Account::types(1)];
             foreach (Payment::types(1) as $k => $v) {
+                if (in_array($k, ['balance', 'integral'])) {
+                    continue;
+                }
                 $allow = [];
                 foreach ($v['account'] as $api) if (isset($types[$api])) {
                     $allow[$api] = $types[$api]['name'];
@@ -151,12 +154,13 @@ class Config extends Controller
         if ($this->request->isGet()) {
             $this->fetch();
         } else {
-            sysdata('plugin.payment.config', $this->request->post([
-                'types', 'integral'
-            ]));
-            $types = $this->request->post('types', []);
+            $post = $this->request->post(['types', 'integral']);
+            if (($post['integral'] ?? 0) < 1) {
+                $this->error('兑换积分不能少于1积分！');
+            }
+            sysdata('plugin.payment.config', $post);
             foreach ($this->types as $k => $v) {
-                Payment::set($k, intval(in_array($k, $types)));
+                Payment::set($k, intval(in_array($k, $post['types'])));
             }
             if (Payment::save()) {
                 $this->success('配置保存成功！');

@@ -44,10 +44,10 @@ class VoucherPayment implements PaymentInterface
 
     /**
      * 订单数据查询
-     * @param string $payCode
+     * @param string $pcode
      * @return array
      */
-    public function query(string $payCode): array
+    public function query(string $pcode): array
     {
         return [];
     }
@@ -60,6 +60,21 @@ class VoucherPayment implements PaymentInterface
     public function notify(?array $data = null): Response
     {
         return response();
+    }
+
+    /**
+     * 子支付单退款
+     * @param string $pcode
+     * @param string $amount
+     * @return array
+     * @throws \think\admin\Exception
+     * @todo 写退款流程
+     */
+    public function refund(string $pcode, string $amount): array
+    {
+        $recode = $this->checkRefund($pcode, $amount);
+
+        return [];
     }
 
     /**

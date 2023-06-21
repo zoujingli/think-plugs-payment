@@ -111,7 +111,7 @@ abstract class Integral
     /**
      * 刷新用户积分
      * @param integer $unid
-     * @return array
+     * @return array [lock,used,total,usable]
      * @throws \think\admin\Exception
      */
     public static function recount(int $unid): array
@@ -130,9 +130,8 @@ abstract class Integral
             'integral_lock'  => $lock, 'integral_used' => abs($used),
             'integral_total' => $total, 'integral_usable' => $total - abs($used),
         ];
-        $user->setAttr('extra', array_merge($user->getAttr('extra'), $data));
-        $user->save();
-        return $data;
+        $user->save(['extra' => array_merge($user->getAttr('extra'), $data)]);
+        return ['lock' => $lock, 'used' => abs($used), 'total' => $total, 'usable' => $data['integral_usable']];
     }
 
     /**

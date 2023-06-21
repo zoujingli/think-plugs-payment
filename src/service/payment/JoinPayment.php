@@ -98,12 +98,12 @@ class JoinPayment implements PaymentInterface
 
     /**
      * 查询订单数据
-     * @param string $payCode
+     * @param string $pcode
      * @return array
      */
-    public function query(string $payCode): array
+    public function query(string $pcode): array
     {
-        return $this->_doReuest('queryOrder.action', ['p1_MerchantNo' => $this->config['mchid'], 'p2_OrderNo' => $payCode]);
+        return $this->_doReuest('queryOrder.action', ['p1_MerchantNo' => $this->config['mchid'], 'p2_OrderNo' => $pcode]);
     }
 
     /**
@@ -127,6 +127,18 @@ class JoinPayment implements PaymentInterface
         } else {
             return response('success');
         }
+    }
+
+    /**
+     * 子支付单退款
+     * @param string $pcode
+     * @param string $amount
+     * @return array
+     * @todo 写退款流程
+     */
+    public function refund(string $pcode, string $amount): array
+    {
+        return [];
     }
 
     /**

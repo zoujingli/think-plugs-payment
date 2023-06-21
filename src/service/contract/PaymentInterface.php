@@ -44,10 +44,10 @@ interface PaymentInterface
 
     /**
      * 主动查询订单支付
-     * @param string $payCode
+     * @param string $pcode
      * @return array
      */
-    public function query(string $payCode): array;
+    public function query(string $pcode): array;
 
     /**
      * 支付通知处理
@@ -55,4 +55,12 @@ interface PaymentInterface
      * @return \think\Response
      */
     public function notify(?array $data = null): Response;
+
+    /**
+     * 子支付单退款
+     * @param string $pcode
+     * @param string $amount
+     * @return array
+     */
+    public function refund(string $pcode, string $amount): array;
 }

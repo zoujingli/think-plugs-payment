@@ -19,11 +19,13 @@ declare (strict_types=1);
 namespace plugin\payment\service\payment\wechat;
 
 use plugin\account\service\contract\AccountInterface;
+use plugin\payment\model\PluginPaymentRecord;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\payment\WechatPayment;
 use think\admin\Exception;
 use think\Response;
 use WePay\Order;
+use WePay\Refund;
 
 /**
  * 微信支付 V2 版本
@@ -94,14 +96,14 @@ class WechatPaymentV2 extends WechatPayment
 
     /**
      * 查询微信支付订单
-     * @param string $payCode 支付号
+     * @param string $pcode 支付号
      * @return array
      * @throws \WeChat\Exceptions\InvalidResponseException
      * @throws \WeChat\Exceptions\LocalCacheException
      */
-    public function query(string $payCode): array
+    public function query(string $pcode): array
     {
-        $result = $this->payment->query(['out_trade_no' => $payCode]);
+        $result = $this->payment->query(['out_trade_no' => $pcode]);
         if (isset($result['return_code']) && isset($result['result_code']) && isset($result['attach'])) {
             if ($result['return_code'] === 'SUCCESS' && $result['result_code'] === 'SUCCESS') {
                 $this->updateAction($result['out_trade_no'], strval($result['cash_fee'] / 100), $result['transaction_id']);
@@ -128,5 +130,30 @@ class WechatPaymentV2 extends WechatPayment
         } else {
             return xml(['return_code' => 'SUCCESS', 'return_msg' => 'OK']);
         }
+    }
+
+    /**
+     * 子支付单退款
+     * @param string $pcode
+     * @param string $amount
+     * @return array
+     * @throws \WeChat\Exceptions\InvalidResponseException
+     * @throws \WeChat\Exceptions\LocalCacheException
+     * @throws \think\admin\Exception
+     * @todo 写退款流程
+     */
+    public function refund(string $pcode, string $amount): array
+    {
+        $record = PluginPaymentRecord::mk()->where(['code' => $pcode])->findOrEmpty();
+        if ($record->isEmpty()) throw new Exception('');
+        // 创建退款申请
+        $options = [
+            'transaction_id' => '1008450740201411110005820873',
+            'out_refund_no'  => '商户退款单号',
+            'total_fee'      => '1',
+            'refund_fee'     => '1',
+        ];
+        $result = Refund::instance($this->config)->create($options);
+        return [];
     }
 }

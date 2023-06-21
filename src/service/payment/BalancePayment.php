@@ -19,6 +19,8 @@ declare (strict_types=1);
 namespace plugin\payment\service\payment;
 
 use plugin\account\service\contract\AccountInterface;
+use plugin\payment\model\PluginPaymentRefund;
+use plugin\payment\service\Balance;
 use plugin\payment\service\Balance as BalanceService;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\contract\PaymentUsageTrait;
@@ -46,10 +48,10 @@ class BalancePayment implements PaymentInterface
 
     /**
      * 订单信息查询
-     * @param string $payCode
+     * @param string $pcode
      * @return array
      */
-    public function query(string $payCode): array
+    public function query(string $pcode): array
     {
         return [];
     }
@@ -62,6 +64,35 @@ class BalancePayment implements PaymentInterface
     public function notify(?array $data = []): Response
     {
         return response('SUCCESS');
+    }
+
+    /**
+     * 子支付单退款
+     * @param string $pcode 子支付单号
+     * @param string $amount 退款金额（元）
+     * @return array
+     * @throws \think\admin\Exception
+     */
+    public function refund(string $pcode, string $amount): array
+    {
+        $pay = $this->checkRefund($pcode, $amount);
+        $code = CodeExtend::uniqidNumber(16, 'R');
+        $model = PluginPaymentRefund::mk()->whereRaw('1<>1')->findOrEmpty();
+        $this->app->db->transaction(function () use ($pay, $code, &$model, $amount) {
+            $model->save(array_merge($pay->toArray(), [
+                'code'          => $code,
+                'record_code'   => $pay->getAttr('code'),
+                'refund_amount' => $amount,
+                'refund_status' => 1,
+                'refund_time'   => date('Y-m-d H:i:s'),
+                'used_balance'  => $amount
+            ]));
+            Balance::create($pay->getAttr('unid'), $code, "来自订单 {$pay->getAttr('order_no')} 退回余额", floatval($amount), '', true);
+            // 刷新退款金额
+            $refundAmount = PluginPaymentRefund::mk()->where(['record_code' => $pay->getAttr('code')])->sum('refund_amount');
+            $pay->save(['refund_status' => 1, 'refund_amount' => $refundAmount]);
+        });
+        return $model->toArray();
     }
 
     /**
@@ -85,7 +116,7 @@ class BalancePayment implements PaymentInterface
             $this->app->db->transaction(function () use (&$data, $unid, $orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, $payRemark) {
                 // 检查能否支付
                 $data = BalanceService::recount($unid);
-                if ($payAmount > $data['balance_usable']) throw new Exception('可抵扣的余额不足');
+                if ($payAmount > $data['usable']) throw new Exception('可抵扣的余额不足');
                 // 创建支付行为
                 $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, '', $payAmount);
                 // 扣除余额金额

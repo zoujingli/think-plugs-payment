@@ -99,13 +99,13 @@ class WechatPaymentV3 extends WechatPayment
 
     /**
      * 查询微信支付订单
-     * @param string $payCode 订单单号
+     * @param string $pcode 订单单号
      * @return array
      */
-    public function query(string $payCode): array
+    public function query(string $pcode): array
     {
         try {
-            $result = $this->payment->query($payCode);
+            $result = $this->payment->query($pcode);
             if (isset($result['trade_state']) && $result['trade_state'] === 'SUCCESS') {
                 $this->updateAction($result['out_trade_no'], strval($result['amount']['total'] / 100), $result['transaction_id'] ?? '');
             }
@@ -135,5 +135,17 @@ class WechatPaymentV3 extends WechatPayment
         } catch (\Exception $exception) {
             return json(['code' => 'FAIL', 'message' => $exception->getMessage()])->code(500);
         }
+    }
+
+    /**
+     * 子支付单退款
+     * @param string $pcode
+     * @param string $amount
+     * @return array
+     * @todo 写退款流程
+     */
+    public function refund(string $pcode, string $amount): array
+    {
+        return [];
     }
 }
