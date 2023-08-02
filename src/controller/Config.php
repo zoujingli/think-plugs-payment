@@ -114,7 +114,7 @@ class Config extends Controller
      * @param boolean $state
      * @return void
      */
-    protected function _form_result(bool &$state)
+    protected function _form_result(bool $state)
     {
         if ($state) {
             $this->success('参数保存成功！', 'javascript:history.back()');

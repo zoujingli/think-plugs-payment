@@ -25,11 +25,21 @@ namespace plugin\payment\model;
  */
 class PluginPaymentConfig extends Abs
 {
+    /**
+     * 格式化数据格式
+     * @param mixed $value
+     * @return string
+     */
     public function setContentAttr($value): string
     {
         return is_array($value) ? json_encode($value, 64 | 256) : (string)$value;
     }
 
+    /**
+     * 格式化数据格式
+     * @param mixed $value
+     * @return array
+     */
     public function getContentAttr($value): array
     {
         return is_string($value) ? json_decode($value, true) : [];

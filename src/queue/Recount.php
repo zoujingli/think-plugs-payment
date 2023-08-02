@@ -19,14 +19,16 @@ declare (strict_types=1);
 namespace plugin\payment\queue;
 
 use plugin\account\model\PluginAccountUser;
+use plugin\payment\service\Balance as BalanceAlias;
+use plugin\payment\service\Integral as IntegralAlias;
 use think\admin\Queue;
 
 /**
  * 刷新用户余额和积分
- * @class Balance
+ * @class Recount
  * @package think\admin\Queue
  */
-class Balance extends Queue
+class Recount extends Queue
 {
     /**
      * @param array $data
@@ -36,7 +38,7 @@ class Balance extends Queue
      */
     public function execute(array $data = [])
     {
-        $this->balance()->intergral()->setQueueSuccess('刷新用户余额及积分完成！');
+        $this->balance()->setQueueSuccess('刷新用户余额及积分完成！');
     }
 
     /**
@@ -44,35 +46,17 @@ class Balance extends Queue
      * @return static
      * @throws \think\db\exception\DbException
      */
-    private function balance(): Balance
+    private function balance(): Recount
     {
         [$total, $count] = [PluginAccountUser::mk()->count(), 0];
         foreach (PluginAccountUser::mk()->field('id')->cursor() as $user) try {
             $nick = $user['username'] ?: ($user['nickname'] ?: $user['email']);
-            $this->queue->message($total, ++$count, "开始刷新用户 [{$user['id']} {$nick}] 余额");
-            \plugin\payment\service\Balance::recount(intval($user['id']));
-            $this->queue->message($total, $count, "刷新用户 [{$user['id']} {$nick}] 余额", 1);
+            $this->setQueueMessage($total, ++$count, "开始刷新用户 [{$user['id']} {$nick}] 余额及积分");
+            BalanceAlias::recount(intval($user['id']));
+            IntegralAlias::recount(intval($user['id']));
+            $this->setQueueMessage($total, $count, "刷新用户 [{$user['id']} {$nick}] 余额及积分", 1);
         } catch (\Exception $exception) {
-            $this->queue->message($total, $count, "刷新用户 [{$user['id']} {$nick}] 余额失败, {$exception->getMessage()}", 1);
-        }
-        return $this;
-    }
-
-    /**
-     * 刷新用户积分
-     * @return static
-     * @throws \think\db\exception\DbException
-     */
-    private function intergral(): Balance
-    {
-        [$total, $count] = [PluginAccountUser::mk()->count(), 0];
-        foreach (PluginAccountUser::mk()->field('id')->cursor() as $user) try {
-            $nick = $user['username'] ?: ($user['nickname'] ?: $user['email']);
-            $this->queue->message($total, ++$count, "开始刷新用户 [{$user['id']} {$nick}] 积分");
-            \plugin\payment\service\Integral::recount(intval($user['id']));
-            $this->queue->message($total, $count, "刷新用户 [{$user['id']} {$nick}] 积分", 1);
-        } catch (\Exception $exception) {
-            $this->queue->message($total, $count, "刷新用户 [{$user['id']} {$nick}] 积分失败, {$exception->getMessage()}", 1);
+            $this->setQueueMessage($total, $count, "刷新用户 [{$user['id']} {$nick}] 余额及积分失败, {$exception->getMessage()}", 1);
         }
         return $this;
     }

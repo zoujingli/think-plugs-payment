@@ -20,6 +20,7 @@ namespace plugin\payment\service\payment;
 
 use plugin\account\service\contract\AccountInterface;
 use plugin\payment\service\contract\PaymentInterface;
+use plugin\payment\service\contract\PaymentResponse;
 use plugin\payment\service\contract\PaymentUsageTrait;
 use plugin\payment\service\Payment;
 use think\admin\Exception;
@@ -64,12 +65,12 @@ class JoinPayment implements PaymentInterface
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
-     * @return array [code,info,data,param]
+     * @return PaymentResponse
      * @throws \think\admin\Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = ''): PaymentResponse
     {
-        [$payCode,] = [$this->withPayCode(), $this->withUserUnid($account)];
+        [$payCode,] = [Payment::withPaymentCode(), $this->withUserUnid($account)];
         $data = [
             'p0_Version'         => '1.0',
             'p1_MerchantNo'      => $this->config['mchid'],
@@ -90,7 +91,7 @@ class JoinPayment implements PaymentInterface
             // 创建支付记录
             $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
             // 返回支付参数
-            return ['code' => 1, 'info' => '创建支付成功', 'data' => $data, 'param' => json_decode($result['rc_Result'], true)];
+            return PaymentResponse::mk(true, '创建支付成功!', $data, json_decode($result['rc_Result'], true));
         } else {
             throw new Exception($result['rb_CodeMsg'] ?? '获取预支付码失败！');
         }
@@ -130,13 +131,14 @@ class JoinPayment implements PaymentInterface
     }
 
     /**
-     * 子支付单退款
-     * @param string $pcode
-     * @param string $amount
-     * @return array
-     * @todo 写退款流程
+     * 发起支付退款
+     * @param string $pcode 支付单号
+     * @param string $amount 退款金额
+     * @param string $reason 退款原因
+     * @return array [状态, 消息]
+     * @todo 发起支付退款
      */
-    public function refund(string $pcode, string $amount): array
+    public function refund(string $pcode, string $amount, string $reason = ''): array
     {
         return [];
     }

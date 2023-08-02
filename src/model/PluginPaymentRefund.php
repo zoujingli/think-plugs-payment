@@ -19,8 +19,6 @@ declare (strict_types=1);
 namespace plugin\payment\model;
 
 use plugin\account\model\PluginAccountUser;
-use plugin\payment\service\Payment;
-use think\model\relation\HasMany;
 use think\model\relation\HasOne;
 
 /**
@@ -37,15 +35,6 @@ class PluginPaymentRefund extends Abs
     public function user(): HasOne
     {
         return $this->hasOne(PluginAccountUser::class, 'id', 'unid');
-    }
-
-    /**
-     * 关联订单所有子支付订单
-     * @return \think\model\relation\HasMany
-     */
-    public function orders(): HasMany
-    {
-        return $this->hasMany(PluginPaymentRecord::class, 'order_no', 'order_no');
     }
 
     /**
@@ -74,16 +63,5 @@ class PluginPaymentRefund extends Abs
     public function getRefundTimeAttr($value): string
     {
         return format_datetime($value);
-    }
-
-    /**
-     * 数据输出处理
-     * @return array
-     */
-    public function toArray(): array
-    {
-        $data = parent::toArray();
-        $data['channel_type_name'] = Payment::typeName($data['channel_type']);
-        return $data;
     }
 }

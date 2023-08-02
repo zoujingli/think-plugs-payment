@@ -22,12 +22,11 @@ use AliPay\App;
 use AliPay\Wap;
 use AliPay\Web;
 use plugin\account\service\contract\AccountInterface;
-use plugin\payment\model\PluginPaymentRefund;
 use plugin\payment\service\contract\PaymentInterface;
+use plugin\payment\service\contract\PaymentResponse;
 use plugin\payment\service\contract\PaymentUsageTrait;
 use plugin\payment\service\Payment;
 use think\admin\Exception;
-use think\admin\extend\CodeExtend;
 use think\Response;
 
 /**
@@ -84,13 +83,14 @@ class AliPayment implements PaymentInterface
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
-     * @return array [code,info,data,param]
+     * @return PaymentResponse
      * @throws \think\admin\Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = ''): PaymentResponse
     {
         try {
-            [$payCode] = [$this->withPayCode(), $this->withUserUnid($account)];
+            $this->checkLeaveAmount($orderNo, $payAmount, $orderAmount);
+            [$payCode] = [Payment::withPaymentCode(), $this->withUserUnid($account)];
             $this->config['notify_url'] = $this->withNotifyUrl($payCode);
             if (in_array($this->cfgType, [Payment::ALIPAY_WAP, Payment::ALIPAY_WEB])) {
                 if (empty($payReturn)) {
@@ -113,7 +113,7 @@ class AliPayment implements PaymentInterface
             // 创建支付记录
             $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
             // 返回支付参数
-            return ['code' => 1, 'info' => '创建支付成功', 'data' => $data, 'param' => $payment->apply($param)];
+            return PaymentResponse::mk(true, "创建支付成功！", $data, [$payment->apply($param)]);
         } catch (Exception $exception) {
             throw $exception;
         } catch (\Exception $exception) {
@@ -122,12 +122,13 @@ class AliPayment implements PaymentInterface
     }
 
     /**
-     * 支付结果处理
-     * @param array|null $data
+     * 支付通知处理
+     * @param array $data
+     * @param ?array $notify
      * @return \think\Response
      * @throws \WeChat\Exceptions\InvalidResponseException
      */
-    public function notify(?array $data = null): Response
+    public function notify(array $data = [], ?array $notify = null): Response
     {
         $notify = $data ?: App::instance($this->config)->notify();
         if (in_array($notify['trade_status'], ['TRADE_SUCCESS', 'TRADE_FINISHED'])) {
@@ -142,39 +143,27 @@ class AliPayment implements PaymentInterface
     }
 
     /**
-     * 子支付单退款
-     * @param string $pcode
-     * @param string $amount
-     * @return array
-     * @throws \WeChat\Exceptions\InvalidResponseException
-     * @throws \WeChat\Exceptions\LocalCacheException
-     * @throws \think\admin\Exception
-     * @todo 写退款流程
+     * 发起支付退款
+     * @param string $pcode 支付单号
+     * @param string $amount 退款金额
+     * @param string $reason 退款原因
+     * @return array [状态, 消息]
      */
-    public function refund(string $pcode, string $amount): array
+    public function refund(string $pcode, string $amount, string $reason = ''): array
     {
-        $pay = $this->checkRefund($pcode, $amount);
-        $code = CodeExtend::uniqidNumber(16, 'R');
-        $model = PluginPaymentRefund::mk()->whereRaw('1<>1')->findOrEmpty();
-        // 写入退款记录
-        $model->save(array_merge($pay->toArray(), [
-            'code'          => $code,
-            'record_code'   => $pay->getAttr('code'),
-            'refund_amount' => $amount,
-            'refund_status' => 1,
-            'refund_time'   => date('Y-m-d H:i:s'),
-            'used_payment'  => $amount
-        ]));
-        // 发起退款操作
-        App::instance($this->config)->refund([
-            'out_trade_no'   => $pcode,
-            'out_request_no' => $code,
-            'refund_amount'  => $amount,
-        ]);
-        // 刷新退款金额
-        $refundAmount = PluginPaymentRefund::mk()->where(['record_code' => $pay->getAttr('code')])->sum('refund_amount');
-        $pay->save(['refund_status' => 1, 'refund_amount' => $refundAmount]);
-        return $model->toArray();
+        try {
+            // 同步已退款状态
+            static::syncRefund($pcode, $rcode, $amount, $reason);
+            // 创建退款申请
+            App::instance($this->config)->refund([
+                'out_trade_no'   => $pcode,
+                'out_request_no' => $rcode,
+                'refund_amount'  => $amount,
+            ]);
+            return [1, '发起退款成功！'];
+        } catch (\Exception $exception) {
+            return [$exception->getCode(), $exception->getMessage()];
+        }
     }
 
     /**

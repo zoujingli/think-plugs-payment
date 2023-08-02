@@ -20,7 +20,9 @@ namespace plugin\payment\service\payment;
 
 use plugin\account\service\contract\AccountInterface;
 use plugin\payment\service\contract\PaymentInterface;
+use plugin\payment\service\contract\PaymentResponse;
 use plugin\payment\service\contract\PaymentUsageTrait;
+use plugin\payment\service\Payment;
 use think\admin\Exception;
 use think\Response;
 
@@ -54,27 +56,32 @@ class VoucherPayment implements PaymentInterface
 
     /**
      * 支付通知处理
-     * @param array|null $data
+     * @param array $data
+     * @param ?array $notify
      * @return \think\Response
      */
-    public function notify(?array $data = null): Response
+    public function notify(array $data = [], ?array $notify = null): Response
     {
-        return response();
+        return response('SUCCESS');
     }
 
     /**
-     * 子支付单退款
-     * @param string $pcode
-     * @param string $amount
-     * @return array
-     * @throws \think\admin\Exception
-     * @todo 写退款流程
+     * 发起支付退款
+     * @param string $pcode 支付单号
+     * @param string $amount 退款金额
+     * @param string $reason 退款原因
+     * @return array [状态, 消息]
      */
-    public function refund(string $pcode, string $amount): array
+    public function refund(string $pcode, string $amount, string $reason = ''): array
     {
-        $recode = $this->checkRefund($pcode, $amount);
-
-        return [];
+        try {
+            $this->app->db->transaction(function () use ($pcode, $amount, $reason) {
+                static::syncRefund($pcode, $rcode, $amount, $reason);
+            });
+            return [1, '发起退款成功！'];
+        } catch (\Exception $exception) {
+            return [0, $exception->getMessage()];
+        }
     }
 
     /**
@@ -87,14 +94,17 @@ class VoucherPayment implements PaymentInterface
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
-     * @return array [code,info,data,param]
+     * @return PaymentResponse
      * @throws \think\admin\Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = ''): PaymentResponse
     {
+        // 订单及凭证检查
         if (empty($payImages)) throw new Exception('凭证不能为空！');
-        [$payCode,] = [$this->withPayCode(), $this->withUserUnid($account)];
+        $this->checkLeaveAmount($orderNo, $payAmount, $orderAmount);
+        // 生成新的待审核记录
+        [$payCode,] = [Payment::withPaymentCode(), $this->withUserUnid($account)];
         $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, $payImages);
-        return ['code' => 1, 'info' => '凭证上传成功！', 'data' => $data, 'param' => []];
+        return PaymentResponse::mk(true, '凭证上传成功！', $data);
     }
 }

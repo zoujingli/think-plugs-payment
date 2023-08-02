@@ -29,7 +29,17 @@ abstract class Abs extends Model
      */
     public function getUpdateTimeAttr($value): string
     {
-        return format_datetime($value);
+        return $this->getCreateTimeAttr($value);
+    }
+
+    /**
+     * 数据格式处理
+     * @param mixed $value
+     * @return array|string|string[]
+     */
+    public function setUpdateTimeAttr($value)
+    {
+        return $this->setCreateTimeAttr($value);
     }
 
     /**
@@ -40,5 +50,19 @@ abstract class Abs extends Model
     public function getCreateTimeAttr($value): string
     {
         return format_datetime($value);
+    }
+
+    /**
+     * 时间写入格式处理
+     * @param mixed $value
+     * @return array|string|string[]
+     */
+    public function setCreateTimeAttr($value)
+    {
+        if (is_string($value)) {
+            return str_replace(['年', '月', '日'], ['-', '-', ''], $value);
+        } else {
+            return $value;
+        }
     }
 }

@@ -62,18 +62,18 @@ class Address extends Auth
             unset($data['id']);
             $map = ['unid' => $this->unid, 'deleted' => 0];
             if (PluginPaymentAddress::mk()->where($map)->count() >= 10) {
-                $this->error('最多只能添加十个收货地址！');
+                $this->error('最多10个地址');
             }
         }
 
         // 设置默认值
-        $model = $this->withDefault(intval($data['id']), intval($data['type']), true);
+        $model = $this->withDefault(intval($data['id'] ?? 0), intval($data['type']), true);
 
         // 保存收货地址
         if ($model->save($data) && $model->isExists()) {
-            $this->success('保存成功！', $model->refresh()->hidden(['deleted'])->toArray());
+            $this->success('地址保存成功', $model->refresh()->hidden(['deleted'])->toArray());
         } else {
-            $this->error('保存失败！');
+            $this->error('地址保存失败');
         }
     }
 
@@ -87,7 +87,7 @@ class Address extends Auth
     {
         $query = $this->_query($this->withModel());
         $query->equal('id')->order('type desc,id desc');
-        $this->success('获取地址数据！', $query->page(false, false));
+        $this->success('获取地址数据', $query->page(false, false));
     }
 
     /**
@@ -104,10 +104,10 @@ class Address extends Auth
 
         // 检查是否存在
         $model = $this->withDefault(intval($data['id']), intval($data['type']));
-        $model->isEmpty() && $this->error('地址不存在！');
+        $model->isEmpty() && $this->error('地址不存在');
 
         // 返回成功消息
-        $this->success('设置默认成功！', $model->refresh()->toArray());
+        $this->success('设置默认成功', $model->refresh()->toArray());
     }
 
     /**
@@ -118,11 +118,11 @@ class Address extends Auth
         $map = $this->_vali(['id.require' => '地址ID不能为空！']);
         $model = $this->withModel($map)->findOrEmpty();
         if ($model->isEmpty()) {
-            $this->error('地址不存在！');
+            $this->error('地址不存在');
         } elseif ($model->save(['deleted' => 1]) !== false) {
-            $this->success('删除地址成功！');
+            $this->success('删除地址成功');
         } else {
-            $this->error('删除地址失败！');
+            $this->error('删除地址失败');
         }
     }
 

@@ -9,12 +9,12 @@
       "email": "zoujingli@qq.com"
     }
   ],
-  "minimum-stability": "dev",
+  "version": "dev-master",
   "require": {
     "php": ">=7.1",
     "ext-json": "*",
-    "zoujingli/think-plugs-admin": "^1.0||dev-master",
-    "zoujingli/think-plugs-account": "^1.0||dev-master"
+    "zoujingli/think-plugs-admin": "^1.0|dev-master",
+    "zoujingli/think-plugs-account": "^1.0|dev-master"
   },
   "require-dev": {
     "phpunit/phpunit": "*"
@@ -39,6 +39,16 @@
       "copy": {
         "stc/database": "database/migrations"
       }
+    },
+    "minimum-stability": "dev",
+    "config": {
+      "type": "plugin",
+      "name": "多端支付管理",
+      "license": [
+        "VIP"
+      ],
+      "homepage": "https://thinkadmin.top",
+      "document": "https://thinkadmin.top/plugin/think-plugs-payment.html"
     }
   },
   "config": {

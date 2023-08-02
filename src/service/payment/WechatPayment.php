@@ -26,7 +26,7 @@ use plugin\payment\service\payment\wechat\WechatPaymentV3;
 use think\admin\storage\LocalStorage;
 
 /**
- * 微信商户支付方式
+ * 微信商户支付调度
  * @class WechatPayment
  * @package plugin\payment\service\payment
  */

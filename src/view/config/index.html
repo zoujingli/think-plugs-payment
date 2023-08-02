@@ -41,9 +41,9 @@
                 {checkbox: true, fixed: true},
                 {field: 'sort', title: '排序权重', align: 'center', width: 100, sort: true, templet: '#SortInputTpl'},
                 {field: 'cover', title: '图标', width: 60, align: 'center', templet: "<div>{{-showTableImage(d.cover||'')}}</div>"},
-                {field: 'code', title: '支付编号', align: "center", minWidth: 145},
-                {field: 'ntype', title: '支付类型', align: "center", minWidth: 145},
-                {field: 'name', title: '支付名称', align: 'left', minWidth: 140},
+                {field: 'code', title: '支付编号', align: "center", minWidth: 145, width: '10%'},
+                {field: 'ntype', title: '支付类型', align: "center", minWidth: 140, width: '10%'},
+                {field: 'name', title: '支付名称', align: 'left', minWidth: 140, width: '10%'},
                 {
                     field: 'atype', title: '终端授权', align: 'left', minWidth: 140, templet: function (d) {
                         let strs = [];
@@ -53,9 +53,9 @@
                         return strs.join('');
                     }
                 },
-                {field: 'status', title: '支付状态', align: 'center', minWidth: 110, templet: '#StatusSwitchTpl'},
-                {field: 'create_time', title: '创建时间', align: 'center', minWidth: 170, sort: true},
-                {toolbar: '#toolbar', title: '操作面板', align: 'center', minWidth: 80, fixed: 'right'},
+                {field: 'status', title: '支付状态', align: 'center', minWidth: 110, width: '5%', templet: '#StatusSwitchTpl'},
+                {field: 'create_time', title: '创建时间', align: 'center', minWidth: 170, width: '12%', sort: true},
+                {toolbar: '#toolbar', title: '操作面板', align: 'center', minWidth: 80, width: '8%', fixed: 'right'},
             ]]
         });
 

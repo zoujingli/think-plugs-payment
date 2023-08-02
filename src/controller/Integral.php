@@ -19,18 +19,18 @@ declare (strict_types=1);
 namespace plugin\payment\controller;
 
 use plugin\account\model\PluginAccountUser;
-use plugin\payment\model\PluginPaymentBalance;
-use plugin\payment\service\Balance as BalanceService;
+use plugin\payment\model\PluginPaymentIntegral;
+use plugin\payment\service\Integral as IntegralService;
 use think\admin\Controller;
 use think\admin\helper\QueryHelper;
 use think\exception\HttpResponseException;
 
 /**
- * 用户余额管理
- * @class Balance
+ * 用户积分管理
+ * @class Integral
  * @package plugin\account\controller\user
  */
-class Balance extends Controller
+class Integral extends Controller
 {
     /**
      * 用户余额管理
@@ -43,10 +43,10 @@ class Balance extends Controller
     public function index()
     {
         $this->type = $this->get['type'] ?? 'index';
-        PluginPaymentBalance::mQuery()->layTable(function () {
+        PluginPaymentIntegral::mQuery()->layTable(function () {
             $this->title = '用户余额管理';
-            $this->balanceTotal = PluginPaymentBalance::mk()->whereRaw("amount>0")->sum('amount');
-            $this->balanceCount = PluginPaymentBalance::mk()->whereRaw("amount<0")->sum('amount');
+            $this->integralTotal = PluginPaymentIntegral::mk()->whereRaw("amount>0")->sum('amount');
+            $this->integralCount = PluginPaymentIntegral::mk()->whereRaw("amount<0")->sum('amount');
         }, function (QueryHelper $query) {
             $db = PluginAccountUser::mQuery()->like('email|nickname|username|phone#user')->db();
             if ($db->getOptions('where')) $query->whereRaw("unid in {$db->field('id')->buildSql()}");
@@ -66,7 +66,7 @@ class Balance extends Controller
                 'code.require'   => '单号不能为空！',
                 'unlock.require' => '状态不能为空！'
             ]);
-            BalanceService::unlock($data['code'], intval($data['unlock']));
+            IntegralService::unlock($data['code'], intval($data['unlock']));
             $this->success('交易操作成功！');
         } catch (HttpResponseException $exception) {
             throw $exception;
@@ -86,7 +86,7 @@ class Balance extends Controller
                 'code.require'   => '单号不能为空！',
                 'cancel.require' => '状态不能为空！'
             ]);
-            BalanceService::cancel($data['code'], intval($data['cancel']));
+            IntegralService::cancel($data['code'], intval($data['cancel']));
             $this->success('交易操作成功！');
         } catch (HttpResponseException $exception) {
             throw $exception;
@@ -105,7 +105,7 @@ class Balance extends Controller
             $data = $this->_vali([
                 'code.require' => '单号不能为空！',
             ]);
-            BalanceService::remove($data['code']);
+            IntegralService::remove($data['code']);
             $this->success('交易操作成功！');
         } catch (HttpResponseException $exception) {
             throw $exception;

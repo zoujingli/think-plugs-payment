@@ -53,7 +53,7 @@ class Service extends Plugin
         $this->app->route->any('/plugin-payment-notify/:vars', function (Request $request) {
             try {
                 $data = json_decode(CodeExtend::deSafe64($request->param('vars')), true);
-                return Payment::mk($data['code'])->notify();
+                return Payment::mk($data['channel'])->notify($data);
             } catch (\Exception|\Error $exception) {
                 return 'Error: ' . $exception->getMessage();
             }
@@ -73,7 +73,9 @@ class Service extends Plugin
                 'subs' => [
                     ['name' => '支付通道管理', 'icon' => 'layui-icon layui-icon-user', 'node' => "{$code}/config/index"],
                     ['name' => '账号余额管理', 'icon' => 'layui-icon layui-icon-cellphone', 'node' => "{$code}/balance/index"],
+                    ['name' => '账号积分管理', 'icon' => 'layui-icon layui-icon-cellphone', 'node' => "{$code}/integral/index"],
                     ['name' => '支付行为管理', 'icon' => 'layui-icon layui-icon-cellphone', 'node' => "{$code}/record/index"],
+                    ['name' => '支付退款管理', 'icon' => 'layui-icon layui-icon-cellphone', 'node' => "{$code}/refund/index"],
                 ],
             ]
         ]);

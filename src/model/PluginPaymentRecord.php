@@ -48,15 +48,49 @@ class PluginPaymentRecord extends Abs
     }
 
     /**
+     * 格式化时间
+     * @param mixed $value
+     * @return string
+     */
+    public function getAuditTimeAttr($value): string
+    {
+        return $this->getCreateTimeAttr($value);
+    }
+
+    /**
+     * 格式化时间
+     * @param mixed $value
+     * @return string
+     */
+    public function setAuditTimeAttr($value): string
+    {
+        return $this->setCreateTimeAttr($value);
+    }
+
+    /**
      * 格式化输出时间
      * @param mixed $value
      * @return string
      */
     public function getPaymentTimeAttr($value): string
     {
-        return format_datetime($value);
+        return $this->getCreateTimeAttr($value);
     }
 
+    /**
+     * 格式化输出时间
+     * @param mixed $value
+     * @return string
+     */
+    public function setPaymentTimeAttr($value): string
+    {
+        return $this->setCreateTimeAttr($value);
+    }
+
+    /**
+     * 数据输出处理
+     * @return array
+     */
     public function toArray(): array
     {
         $data = parent::toArray();

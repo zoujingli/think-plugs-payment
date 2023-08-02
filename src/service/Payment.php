@@ -22,7 +22,9 @@ use plugin\account\service\Account;
 use plugin\account\service\contract\AccountInterface;
 use plugin\payment\model\PluginPaymentConfig;
 use plugin\payment\model\PluginPaymentRecord;
+use plugin\payment\model\PluginPaymentRefund;
 use plugin\payment\service\contract\PaymentInterface;
+use plugin\payment\service\contract\PaymentResponse;
 use plugin\payment\service\payment\AliPayment;
 use plugin\payment\service\payment\BalancePayment;
 use plugin\payment\service\payment\EmptyPayment;
@@ -30,6 +32,8 @@ use plugin\payment\service\payment\IntegralPayment;
 use plugin\payment\service\payment\VoucherPayment;
 use plugin\payment\service\payment\WechatPayment;
 use think\admin\Exception;
+use think\admin\extend\CodeExtend;
+use think\db\Query;
 
 /**
  * 支付通道调度器
@@ -378,12 +382,26 @@ abstract class Payment
     /**
      * 判断是否完成支付
      * @param string $orderNo 原订单号
-     * @param string $amount 需要支付金额
+     * @param string $amount 需支付金额
      * @return boolean
      */
     public static function isPayed(string $orderNo, string $amount): bool
     {
-        return self::leaveAmount($orderNo) >= floatval($amount);
+        return self::paidAmount($orderNo) >= floatval($amount);
+    }
+
+    /**
+     * 发起订单整体退款
+     * @param string $orderNo
+     * @return void
+     * @throws \think\admin\Exception
+     */
+    public static function refund(string $orderNo)
+    {
+        $items = PluginPaymentRecord::mq()->where(function (Query $query) {
+            $query->whereOr([['payment_status', '=', 1], ['audit_status', '>', '0']]);
+        })->where(['order_no' => $orderNo])->column('code,channel_code,payment_amount');
+        foreach ($items as $item) static::mk($item['channel_code'])->refund($item['code'], $item['payment_amount']);
     }
 
     /**
@@ -391,10 +409,44 @@ abstract class Payment
      * @param string $orderNo
      * @return float
      */
-    public static function leaveAmount(string $orderNo): float
+    public static function paidAmount(string $orderNo): float
     {
-        $map = ['order_no' => $orderNo, 'payment_status' => 1];
-        return PluginPaymentRecord::mk()->where($map)->sum('payment_amount');
+        $where = ['order_no' => $orderNo, 'payment_status' => 1];
+        return PluginPaymentRecord::mk()->where($where)->sum('payment_amount');
+    }
+
+    /**
+     * 订单剩余支付金额
+     * @param string $orderNo
+     * @param mixed $orderAmount
+     * @return float
+     */
+    public static function leaveAmount(string $orderNo, $orderAmount): float
+    {
+        $diff = floatval($orderAmount) - self::paidAmount($orderNo);
+        return $diff > 0 ? $diff : 0.00;
+    }
+
+    /**
+     * 生成支付单号
+     * @return string
+     */
+    public static function withPaymentCode(): string
+    {
+        do $code = CodeExtend::uniqidNumber(16, 'P');
+        while (PluginPaymentRecord::mk()->master()->where(['code' => $code])->findOrEmpty()->isExists());
+        return $code;
+    }
+
+    /**
+     * 生成退款单号
+     * @return string
+     */
+    public static function withRefundCode(): string
+    {
+        do $code = CodeExtend::uniqidNumber(16, 'R');
+        while (PluginPaymentRefund::mk()->master()->where(['code' => $code])->findOrEmpty()->isExists());
+        return $code;
     }
 
     /**
@@ -403,10 +455,10 @@ abstract class Payment
      * @param string $orderNo 订单单号
      * @param string $title 订单标题
      * @param string $remark 订单描述
-     * @return array
+     * @return PaymentResponse
      * @throws \think\admin\Exception
      */
-    public static function emptyPayment(AccountInterface $account, string $orderNo, string $title = '商城订单支付', string $remark = '订单金额为0，无需要支付'): array
+    public static function emptyPayment(AccountInterface $account, string $orderNo, string $title = '商城订单支付', string $remark = '订单金额为0，无需要支付'): PaymentResponse
     {
         return self::mk(self::EMPTY)->create($account, $orderNo, $title, '0.00', '0.00', $remark);
     }

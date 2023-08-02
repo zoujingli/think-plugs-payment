@@ -69,6 +69,8 @@ trait PaymentUsageTrait
      * @param string $code
      * @param string $type
      * @param array $params
+     * @throws \WeChat\Exceptions\InvalidResponseException
+     * @throws \WeChat\Exceptions\LocalCacheException
      */
     public function __construct(App $app, string $code, string $type, array $params)
     {
@@ -108,15 +110,21 @@ trait PaymentUsageTrait
      */
     protected function checkLeaveAmount($orderNo, $payAmount, $orderAmount): float
     {
-        if (floatval($payAmount) + Payment::leaveAmount($orderNo) > floatval($orderAmount)) {
-            throw new Exception("支付总额超订单金额！");
+        // 检查未审核的记录
+        $map = ['order_no' => $orderNo, 'audit_status' => 1];
+        $find = PluginPaymentRecord::mk()->where($map)->findOrEmpty();
+        if ($find->isExists()) throw new Exception('凭证待审核！', 0);
+
+        // 检查支付金额是否超出
+        if (floatval($payAmount) + Payment::paidAmount($orderNo) > floatval($orderAmount)) {
+            throw new Exception("支付超出订单金额！");
         }
         return floatval($payAmount);
     }
 
     /**
      * 创建支付行为
-     * @param string $orderNo 订单单号号
+     * @param string $orderNo 订单单号
      * @param string $orderTitle 订单标题
      * @param string $orderAmount 订单总金额
      * @param string $payCode 此次支付单号
@@ -132,14 +140,15 @@ trait PaymentUsageTrait
         // 检查是否已经支付
         $map = ['order_no' => $orderNo, 'payment_status' => 1];
         $total = PluginPaymentRecord::mk()->where($map)->sum('payment_amount');
-        if ($total >= floatval($orderAmount)) {
-            throw new Exception("订单 {$orderNo} 已经完成支付！", 1);
+        if ($total >= floatval($orderAmount) && $orderAmount > 0) {
+            throw new Exception("已经完成支付！", 1);
         }
         if ($total + floatval($payAmount) > floatval($orderAmount)) {
-            throw new Exception('支付金额大于订单金额');
+            throw new Exception('支付大于金额！', 0);
         }
+        $map['code'] = $payCode;
         if (($model = PluginPaymentRecord::mk()->where($map)->findOrEmpty())->isExists()) {
-            throw new Exception("订单 {$orderNo} 已经完成支付！", 1);
+            throw new Exception("已经完成支付！", 1);
         }
         // 写入订单支付行为
         $model->save([
@@ -151,12 +160,21 @@ trait PaymentUsageTrait
             'order_amount'   => $orderAmount,
             'channel_code'   => $this->cfgCode,
             'channel_type'   => $this->cfgType,
+            'payment_amount' => $this->cfgType === Payment::VOUCHER ? $payAmount : 0.00,
             'payment_images' => $payImages,
+            'audit_status'   => $this->cfgType === Payment::VOUCHER ? 1 : 2,
+            'audit_time'     => date("Y-m-d H:i:s"),
             'used_payment'   => $payAmount,
             'used_balance'   => $usedBalance,
             'used_integral'  => $usedIntegral,
         ]);
-        return $model->toArray();
+
+        // 触发支付审核事件
+        $record = $model->toArray();
+        if ($this->cfgType === Payment::VOUCHER) {
+            $this->app->event->trigger('PluginPaymentAudit', $record);
+        }
+        return $record;
     }
 
     /**
@@ -193,15 +211,73 @@ trait PaymentUsageTrait
     }
 
     /**
-     * 生成支付单号
-     * @return string
+     * 同步退款统计状态
+     * @param string $pCode 支付单号
+     * @param ?string $rCode 退款单号&引用
+     * @param ?string $amount 退款金额
+     * @param string $reason 退款原因
+     * @return \plugin\payment\model\PluginPaymentRecord
+     * @throws \think\admin\Exception
      */
-    protected function withPayCode(): string
+    public static function syncRefund(string $pCode, ?string &$rCode = '', ?string $amount = null, string $reason = ''): PluginPaymentRecord
     {
-        do {
-            $code = CodeExtend::uniqidNumber(16, 'U');
-        } while (PluginPaymentRecord::mk()->where(['code' => $code])->findOrEmpty()->isExists());
-        return $code;
+        // 查询支付记录
+        $record = PluginPaymentRecord::mk()->where(['code' => $pCode])->findOrEmpty();
+        if ($record->isEmpty()) throw new Exception('支付单不存在！');
+        if ($record->getAttr('payment_status') < 1) throw new Exception('支付未完成！');
+        // 统计刷新退款金额
+        $where = ['record_code' => $pCode, 'refund_status' => 1];
+        $rAmount = PluginPaymentRefund::mk()->where($where)->sum('refund_amount');
+        $record->save(['refund_amount' => $rAmount, 'refund_status' => intval($rAmount > 0)]);
+        // 应用此次是否退款
+        if (is_numeric($amount)) {
+            if ($record->getAttr('refund_amount') > 0) {
+                if ($record->getAttr('refund_amount') >= $record->getAttr('payment_amount')) {
+                    throw new Exception('退款已完成！', 1);
+                }
+                if ($record->getAttr('refund_amount') > $record->getAttr('payment_amount') - floatval($amount)) {
+                    throw new Exception('退款金额超出！', 0);
+                }
+            }
+            $extra = [];
+            // 生成退款记录
+            $rCode = Payment::withRefundCode();
+            $pType = $record->getAttr('channel_type');
+            if (in_array($pType, [Payment::BALANCE, Payment::INTEGRAL, Payment::VOUCHER, Payment::EMPTY])) {
+                if ($pType === Payment::BALANCE) $extra['used_balance'] = $amount;
+                elseif ($pType === Payment::VOUCHER) $extra['used_payment'] = $amount;
+                elseif ($pType === Payment::INTEGRAL) {
+                    $extra['used_integral'] = floatval($amount) / floatval($record->getAttr('payment_amount')) * $record->getAttr('used_integral');
+                }
+                $extra['refund_trade'] = CodeExtend::uniqidNumber(16, 'RT');
+                $extra['refund_account'] = $pType;
+                $extra['refund_scode'] = 'SUCCESS';
+                $extra['refund_status'] = 1;
+                $extra['refund_time'] = date('Y-m-d H:i:s');
+            } else {
+                $extra['refund_status'] = 0;
+                $extra['used_payment'] = $amount;
+            }
+            PluginPaymentRefund::mk()->save(array_merge([
+                'unid'          => $record->getAttr('unid'),
+                'usid'          => $record->getAttr('usid'),
+                'code'          => $rCode,
+                'record_code'   => $pCode,
+                'refund_amount' => $amount,
+                'refund_remark' => $reason,
+            ], $extra));
+            // 刷新退款金额
+            if (in_array($pType, [Payment::VOUCHER, Payment::BALANCE, Payment::INTEGRAL, Payment::EMPTY])) {
+                $map = ['record_code' => $pCode, 'refund_status' => 1];
+                $extra = ['refund_status' => 1, 'refund_amount' => PluginPaymentRefund::mk()->where($map)->sum('refund_amount')];
+                if ($pType === Payment::VOUCHER) {
+                    $extra['audit_time'] = date('Y-m-d H:i:s');
+                    $extra['audit_status'] = 0;
+                }
+                $record->save($extra);
+            }
+        }
+        return $record;
     }
 
     /**
@@ -234,35 +310,13 @@ trait PaymentUsageTrait
      * 获取通知地址
      * @param string $order 订单单号
      * @param string $scene 支付场景
-     * @param array $extra
+     * @param array $extra 扩展数据
      * @return string
      */
     protected function withNotifyUrl(string $order, string $scene = 'order', array $extra = []): string
     {
-        $data = ['scen' => $scene, 'order' => $order, 'code' => $this->cfgCode];
+        $data = ['scen' => $scene, 'order' => $order, 'channel' => $this->cfgCode];
         $vars = CodeExtend::enSafe64(json_encode($extra + $data, 64 | 256));
         return sysuri('@plugin-payment-notify', [], false, true) . "/{$vars}";
-    }
-
-    /**
-     * 检查支付退款
-     * @param string $pcode 子支付单号
-     * @param string $amount 退款金额
-     * @return \plugin\payment\model\PluginPaymentRecord
-     * @throws \think\admin\Exception
-     */
-    protected function checkRefund(string $pcode, string $amount): PluginPaymentRecord
-    {
-        $record = PluginPaymentRecord::mk()->where(['code' => $pcode])->findOrEmpty();
-        if ($record->isEmpty()) throw new Exception("原支付记录不存在！");
-        if ($record->getAttr('payment_status') !== 1) throw new Exception("该支付尚未完成！");
-        $refundAmount = PluginPaymentRefund::mk()->where(['record_code' => $pcode])->sum('refund_amount');
-        if ($refundAmount >= $record->getAttr('payment_amount')) {
-            throw new Exception("该支付已完成退款！");
-        }
-        if ($refundAmount + floatval($amount) > $record->getAttr('payment_amount')) {
-            throw new Exception("该支付退款总额已超出！");
-        }
-        return $record;
     }
 }

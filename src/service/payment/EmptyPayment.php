@@ -20,7 +20,9 @@ namespace plugin\payment\service\payment;
 
 use plugin\account\service\contract\AccountInterface;
 use plugin\payment\service\contract\PaymentInterface;
+use plugin\payment\service\contract\PaymentResponse;
 use plugin\payment\service\contract\PaymentUsageTrait;
+use plugin\payment\service\Payment;
 use think\admin\Exception;
 use think\admin\extend\CodeExtend;
 use think\Response;
@@ -53,18 +55,20 @@ class EmptyPayment implements PaymentInterface
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
-     * @return array [code,info,data,param]
+     * @return PaymentResponse
      * @throws \think\admin\Exception
      */
-    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark, string $payReturn = '', string $payImages = ''): array
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = ''): PaymentResponse
     {
         try {
-            [$data, $payCode] = [[], $this->withPayCode(), $this->withUserUnid($account)];
+            [$data, $payCode] = [[], Payment::withPaymentCode(), $this->withUserUnid($account)];
             $this->app->db->transaction(function () use (&$data, $orderNo, $orderTitle, $orderAmount, $payCode, $payAmount) {
                 $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
-                $data = $this->updateAction($payCode, CodeExtend::uniqidDate(20), $payAmount, '无需支付');
+                $data = $this->updateAction($payCode, CodeExtend::uniqidNumber(18, 'EMT'), $payAmount, '无需支付');
             });
-            return ['code' => 1, 'info' => '订单无需支付', 'data' => $data, 'param' => []];
+            return PaymentResponse::mk(true, "订单无需支付！", $data);
+        } catch (Exception $exception) {
+            throw $exception;
         } catch (\Exception $exception) {
             throw new Exception($exception->getMessage(), $exception->getCode());
         }
@@ -82,23 +86,31 @@ class EmptyPayment implements PaymentInterface
 
     /**
      * 支付通知处理
-     * @param array|null $data
+     * @param array $data
+     * @param ?array $notify
      * @return \think\Response
      */
-    public function notify(?array $data = null): Response
+    public function notify(array $data = [], ?array $notify = null): Response
     {
-        return response();
+        return response('SUCCESS');
     }
 
     /**
-     * 子支付单退款
-     * @param string $pcode
-     * @param string $amount
-     * @return array
-     * @todo 写退款流程
+     * 发起支付退款
+     * @param string $pcode 支付单号
+     * @param string $amount 退款金额
+     * @param string $reason 退款原因
+     * @return array [状态, 消息]
      */
-    public function refund(string $pcode, string $amount): array
+    public function refund(string $pcode, string $amount, string $reason = ''): array
     {
-        return [];
+        try {
+            $this->app->db->transaction(function () use ($pcode, $amount, $reason) {
+                static::syncRefund($pcode, $rcode, $amount, $reason);
+            });
+            return [1, '发起退款成功！'];
+        } catch (\Exception $exception) {
+            return [0, $exception->getMessage()];
+        }
     }
 }

@@ -29,6 +29,20 @@ use think\admin\Exception;
  */
 abstract class Integral
 {
+
+    /**
+     * 积分转换比率
+     * @param float $integral
+     * @return float
+     * @throws \think\admin\Exception
+     */
+    public static function ratio(float $integral = 1): float
+    {
+        $cfg = sysdata('plugin.payment.config');
+        if (empty($cfg['integral']) || $cfg['integral'] < 1) $cfg['integral'] = 1;
+        return $integral / floatval($cfg['integral']);
+    }
+
     /**
      * 创建积分变更操作
      * @param integer $unid 账号编号
@@ -121,9 +135,9 @@ abstract class Integral
 
         // 统计用户积分数据
         $map = ['unid' => $unid, 'cancel' => 0, 'deleted' => 0];
-        $lock = PluginPaymentIntegral::mk()->where($map)->where('unlock', '=', '0')->sum('amount');
-        $used = PluginPaymentIntegral::mk()->where($map)->where('amount', '<', '0')->sum('amount');
-        $total = PluginPaymentIntegral::mk()->where($map)->where('amount', '>', '0')->sum('amount');
+        $lock = intval(PluginPaymentIntegral::mk()->where($map)->where('unlock', '=', '0')->sum('amount'));
+        $used = intval(PluginPaymentIntegral::mk()->where($map)->where('amount', '<', '0')->sum('amount'));
+        $total = intval(PluginPaymentIntegral::mk()->where($map)->where('amount', '>', '0')->sum('amount'));
 
         // 更新积分统计
         $data = [

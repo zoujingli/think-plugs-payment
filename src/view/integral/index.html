@@ -2,7 +2,7 @@
 
 {block name="content"}
 <div class="think-box-notify sub-strong-blue">
-    <strong>余额统计</strong>：<span>累计充值 <b>{$balanceTotal|number_format}</b> 元，已消费 <b>{$balanceCount|abs|number_format}</b> 元，剩余可用余额 <b>{:number_format($balanceTotal+$balanceCount)}</b> 元。</span>
+    <strong>余额统计</strong>：<span>累计发放 <b>{$integralTotal|number_format}</b> 积分，已消费 <b>{$integralCount|abs|number_format}</b> 积分，剩余可用 <b>{:number_format($integralTotal+$integralCount)}</b> 积分。</span>
 </div>
 
 <div class="layui-tab layui-tab-card">
@@ -14,14 +14,14 @@
         {/if}{/foreach}
     </ul>
     <div class="layui-tab-content">
-        {include file='balance/index_search'}
-        <table id="BalanceTable" data-line="2" data-url="{:request()->url()}" data-target-search="form.form-search"></table>
+        {include file='integral/index_search'}
+        <table id="IntegralTable" data-line="2" data-url="{:request()->url()}" data-target-search="form.form-search"></table>
     </div>
 </div>
 
 <script>
     $(function () {
-        $('#BalanceTable').layTable({
+        $('#IntegralTable').layTable({
             even: true, height: 'full',
             sort: {field: 'id', type: 'desc'},
             cols: [[
@@ -35,7 +35,7 @@
                 },
                 {
                     field: 'amount', title: '交易金额', sort: true, minWidth: 180, width: '15%', templet: function (d) {
-                        return laytpl('<div>交易金额：<b class="color-blue">{{d.amount}}</b> 元<br>交易单号：<b class="color-blue">{{d.code||"-"}}</b></div>').render(d);
+                        return laytpl('<div>交易金额：<b class="color-blue">{{d.amount}}</b> 积分<br>交易单号：<b class="color-blue">{{d.code||"-"}}</b></div>').render(d);
                     }
                 },
                 {
@@ -68,9 +68,9 @@
             var data = {code: obj.value, cancel: obj.elem.checked > 0 ? 0 : 1};
             $.form.load("{:url('cancel')}", data, 'post', function (ret) {
                 if (ret.code < 1) $.msg.error(ret.info, 3, function () {
-                    $('#BalanceTable').trigger('reload');
+                    $('#IntegralTable').trigger('reload');
                 }); else {
-                    $('#BalanceTable').trigger('reload')
+                    $('#IntegralTable').trigger('reload')
                 }
                 return false;
             }, false);
