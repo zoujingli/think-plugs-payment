@@ -172,11 +172,11 @@ trait PaymentUsageTrait
         ]);
 
         // 触发支付审核事件
-        $record = $model->refresh()->toArray();
+        $record = $model->refresh();
         if ($this->cfgType === Payment::VOUCHER) {
             $this->app->event->trigger('PluginPaymentAudit', $record);
         }
-        return $record;
+        return $record->toArray();
     }
 
     /**
@@ -206,7 +206,7 @@ trait PaymentUsageTrait
         ]);
 
         // 触发支付成功事件
-        $this->app->event->trigger('PluginPaymentSuccess', $model->refresh()->toArray());
+        $this->app->event->trigger('PluginPaymentSuccess', $model->refresh());
 
         // 更新记录状态
         return $model->toArray();
@@ -267,7 +267,7 @@ trait PaymentUsageTrait
             'audit_remark'  => '已申请取消支付，' . ($reason ?: '后台取消！')
         ]);
         // 触发取消支付事件
-        Library::$sapp->event->trigger('PluginPaymentCancel', $record->refresh()->toArray());
+        Library::$sapp->event->trigger('PluginPaymentCancel', $record->refresh());
         return $record;
     }
 

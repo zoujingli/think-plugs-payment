@@ -32,12 +32,12 @@ https://documenter.getpostman.com/view/4518676/2s93eeRpDr
 
 ### 支付事件
 
-* `PluginAccountBind` 注册用户绑定事件
-* `PluginPaymentAudit` 注册支付审核事件
-* `PluginPaymentRefuse` 注册支付拒审事件
-* `PluginPaymentSuccess` 注册支付完成事件
-* `PluginPaymentCancel` 注册支付取消事件
-* `PluginPaymentConfirm` 注册订单确认事件
+* `PluginAccountBind` 注册用户绑定事件，回调参数 `function (array $data);`
+* `PluginPaymentAudit` 注册支付审核事件，回调参数 `function (PluginPaymentRecord $payment);`
+* `PluginPaymentRefuse` 注册支付拒审事件，回调参数 `function (PluginPaymentRecord $payment);`
+* `PluginPaymentSuccess` 注册支付完成事件，回调参数 `function (PluginPaymentRecord $payment);`
+* `PluginPaymentCancel` 注册支付取消事件，回调参数 `function (PluginPaymentRecord $payment);`
+* `PluginPaymentConfirm` 注册订单确认事件，回调参数 `function (array $data);`
 
 ### 安装插件
 

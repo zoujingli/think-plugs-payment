@@ -99,10 +99,10 @@ class Record extends Controller
             }
             if ($action->save($data)) {
                 if (empty($data['status'])) {
-                    $this->app->event->trigger('PluginPaymentRefuse', $action->refresh()->toArray());
+                    $this->app->event->trigger('PluginPaymentRefuse', $action->refresh());
                     $this->success('凭证审核驳回！');
                 } else {
-                    $this->app->event->trigger('PluginPaymentSuccess', $action->refresh()->toArray());
+                    $this->app->event->trigger('PluginPaymentSuccess', $action->refresh());
                     $this->success('凭证审核通过！');
                 }
             } else {
