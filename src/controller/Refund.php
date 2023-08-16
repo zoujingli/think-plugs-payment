@@ -44,7 +44,7 @@ class Refund extends Controller
         $this->mode = $this->get['open_type'] ?? 'index';
         PluginPaymentRefund::mQuery()->layTable(function () {
             if ($this->mode === 'index') $this->title = '支付行为管理';
-        }, function (QueryHelper $query) {
+        }, static function (QueryHelper $query) {
             $query->with(['user', 'record'])->like('order_no|order_name#orderinfo')->dateBetween('create_time');
             $db = PluginAccountUser::mQuery()->like('email|nickname|username|phone#userinfo')->db();
             if ($db->getOptions('where')) $query->whereRaw("unid in {$db->field('id')->buildSql()}");

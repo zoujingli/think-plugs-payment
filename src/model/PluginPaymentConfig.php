@@ -25,6 +25,9 @@ namespace plugin\payment\model;
  */
 class PluginPaymentConfig extends Abs
 {
+    protected $oplogName = '商城支付配置';
+    protected $oplogType = '商城支付配置';
+
     /**
      * 格式化数据格式
      * @param mixed $value

@@ -21,9 +21,9 @@
             sort: {field: 'id', type: 'desc'},
             cols: [[
                 /* {if $mode neq 'modal'} */
-                {field: 'headimg', title: '头像', width: 80, align: 'center', templet: '<div>{{-showTableImage(d.user.headimg,true,"md")}}</div>'},
+                {field: 'headimg', title: '头像', width: 85, align: 'center', templet: '<div>{{-showTableImage(d.user.headimg,true,"md")}}</div>'},
                 {
-                    field: 'id', title: '用户账号', minWidth: 170, templet: function (d) {
+                    field: 'id', title: '用户账号', minWidth: 220, width: '18%', templet: function (d) {
                         let tpls = [];
                         tpls.push('用户昵称：{{d.user.nickname||"-"}}');
                         tpls.push('绑定账号：{{d.user.phone||d.user.email||d.user.username||"-"}}');
@@ -39,12 +39,10 @@
                         tpls.push('订单编号：<b class="color-blue">{{d.order_no}}</b>');
                         if (d.payment_status) {
                             tpls.push('订单金额：<b class="color-blue">需支付 {{d.order_amount}}</b> 元 ( 已付 <b class="color-blue">{{d.payment_amount}}</b> 元 )');
+                        } else if (d.payment_amount > 0) {
+                            tpls.push('订单金额：<b class="color-blue">需支付 {{d.order_amount}}</b> 元 ( 待审 <b class="color-blue">{{d.payment_amount}}</b> 元 )');
                         } else {
-                            if (d.payment_amount > 0) {
-                                tpls.push('订单金额：<b class="color-blue">需支付 {{d.order_amount}}</b> 元 ( 待审 <b class="color-blue">{{d.payment_amount}}</b> 元 )');
-                            } else {
-                                tpls.push('订单金额：<b class="color-blue">需支付 {{d.order_amount}}</b> 元');
-                            }
+                            tpls.push('订单金额：<b class="color-blue">需支付 {{d.order_amount}}</b> 元');
                         }
                         return laytpl(tpls.join('<br>')).render(d);
                     }
@@ -89,7 +87,7 @@
                     }
                 },
                 /* {if auth("audit")} */
-                {field: 'id', toolbar: '#toolbarPayment', title: '操作面板', align: 'center', minWidth: 180, width: '10%', fixed: 'right'}
+                {field: 'id', toolbar: '#toolbarPayment', title: '操作面板', align: 'center', minWidth: 120, width: '10%', fixed: 'right'}
                 /* {/if} */
             ]]
         });
@@ -98,27 +96,30 @@
 
 <script type="text/html" id="toolbarPayment">
     <!-- {if auth('cancel')}-->
-    {{# if(d.refund_status){ }}
-    <a class="layui-btn layui-btn-sm margin-top-20 layui-disabled">已经取消</a>
+    {{#if(d.payment_status == 0 && d.refund_status < 2){}}
+    <a class="layui-btn layui-btn-sm margin-top-0 layui-disabled">不能取消</a>
+    {{#}else if(d.refund_status){}}
+    <a class="layui-btn layui-btn-sm margin-top-0 layui-disabled">已经取消</a>
     {{#}else{}}
-    <a class="layui-btn layui-btn-sm layui-btn-danger margin-top-20" data-load="{:url('cancel')}" data-value="code#{{d.code}}">取消支付</a>
-    {{# } }}
+    <a class="layui-btn layui-btn-sm margin-top-0 layui-btn-danger" data-confirm="确认要取消支付吗？" data-load="{:url('cancel')}" data-value="code#{{d.code}}">取消支付</a>
+    {{#}}}
+    <br>
     <!-- {/if} -->
 
     <!--{if auth("audit")}-->
-    {{# if(d.channel_type === 'voucher'){ }}
+    {{#if(d.channel_type === 'voucher'){}}
 
-    {{# if(d.audit_status === 1){ }}
-    <a class="layui-btn layui-btn-sm margin-top-20" data-modal="{:url('audit')}" data-value="id#{{d.id}}" data-title="支付凭证审核">凭证审核</a>
-    {{# } else if(d.audit_status === 0){ }}
-    <a class="layui-btn layui-btn-sm margin-top-20 layui-disabled">已经拒绝</a>
-    {{# } else if(d.audit_status === 2){ }}
-    <a class="layui-btn layui-btn-sm margin-top-20 layui-disabled">已经通过</a>
-    {{# } }}
+    {{#if(d.audit_status === 1){}}
+    <a class="layui-btn layui-btn-sm" data-modal="{:url('audit')}" data-value="id#{{d.id}}" data-title="支付凭证审核">凭证审核</a>
+    {{#}else if(d.audit_status === 0){}}
+    <a class="layui-btn layui-btn-sm layui-disabled">已经拒绝</a>
+    {{#}else if(d.audit_status === 2){}}
+    <a class="layui-btn layui-btn-sm layui-disabled">已经通过</a>
+    {{#}}}
 
-    {{#}else{ }}
-    <a class="layui-btn layui-btn-sm margin-top-20 layui-disabled">无需操作</a>
-    {{# } }}
+    {{#}else{}}
+    <a class="layui-btn layui-btn-sm layui-disabled">无需操作</a>
+    {{#}}}
     <!--{/if}-->
 </script>
 {/block}

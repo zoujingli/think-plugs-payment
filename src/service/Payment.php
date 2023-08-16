@@ -34,6 +34,7 @@ use plugin\payment\service\payment\WechatPayment;
 use think\admin\Exception;
 use think\admin\extend\CodeExtend;
 use think\db\Query;
+use think\db\Raw;
 
 /**
  * 支付通道调度器
@@ -406,13 +407,15 @@ abstract class Payment
 
     /**
      * 获取已支付金额
-     * @param string $orderNo
+     * @param string $orderNo 订单单号
+     * @param boolean $realtime 有效金额
      * @return float
      */
-    public static function paidAmount(string $orderNo): float
+    public static function paidAmount(string $orderNo, bool $realtime = false): float
     {
-        $where = ['order_no' => $orderNo, 'payment_status' => 1];
-        return PluginPaymentRecord::mk()->where($where)->sum('payment_amount');
+        $map = ['order_no' => $orderNo, 'payment_status' => 1];
+        $raw = new Raw($realtime ? 'payment_amount - refund_amount' : 'payment_amount');
+        return PluginPaymentRecord::mk()->where($map)->sum($raw);
     }
 
     /**
@@ -433,9 +436,9 @@ abstract class Payment
      */
     public static function withPaymentCode(): string
     {
-        do $code = CodeExtend::uniqidNumber(16, 'P');
-        while (PluginPaymentRecord::mk()->master()->where(['code' => $code])->findOrEmpty()->isExists());
-        return $code;
+        do $data = ['code' => CodeExtend::uniqidNumber(16, 'P')];
+        while (PluginPaymentRecord::mk()->master()->where($data)->findOrEmpty()->isExists());
+        return $data['code'];
     }
 
     /**
@@ -444,9 +447,9 @@ abstract class Payment
      */
     public static function withRefundCode(): string
     {
-        do $code = CodeExtend::uniqidNumber(16, 'R');
-        while (PluginPaymentRefund::mk()->master()->where(['code' => $code])->findOrEmpty()->isExists());
-        return $code;
+        do $data = ['code' => CodeExtend::uniqidNumber(16, 'R')];
+        while (PluginPaymentRefund::mk()->master()->where($data)->findOrEmpty()->isExists());
+        return $data['code'];
     }
 
     /**

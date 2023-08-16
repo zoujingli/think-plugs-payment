@@ -20,6 +20,11 @@ namespace plugin\payment\model;
 
 use think\admin\Model;
 
+/**
+ * 基础抽象模型
+ * @class Abs
+ * @package plugin\payment\model
+ */
 abstract class Abs extends Model
 {
     /**

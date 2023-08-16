@@ -24,6 +24,8 @@ use plugin\payment\model\PluginPaymentRefund;
 use plugin\payment\service\Payment;
 use think\admin\Exception;
 use think\admin\extend\CodeExtend;
+use think\admin\Library;
+use think\admin\service\AdminService;
 use think\App;
 
 /**
@@ -170,7 +172,7 @@ trait PaymentUsageTrait
         ]);
 
         // 触发支付审核事件
-        $record = $model->toArray();
+        $record = $model->refresh()->toArray();
         if ($this->cfgType === Payment::VOUCHER) {
             $this->app->event->trigger('PluginPaymentAudit', $record);
         }
@@ -214,7 +216,7 @@ trait PaymentUsageTrait
      * 同步退款统计状态
      * @param string $pCode 支付单号
      * @param ?string $rCode 退款单号&引用
-     * @param ?string $amount 退款金额
+     * @param ?string $amount 退款金额 ( null 表示需要处理退款，仅同步数据 )
      * @param string $reason 退款原因
      * @return \plugin\payment\model\PluginPaymentRecord
      * @throws \think\admin\Exception
@@ -226,57 +228,46 @@ trait PaymentUsageTrait
         if ($record->isEmpty()) throw new Exception('支付单不存在！');
         if ($record->getAttr('payment_status') < 1) throw new Exception('支付未完成！');
         // 统计刷新退款金额
-        $where = ['record_code' => $pCode, 'refund_status' => 1];
-        $rAmount = PluginPaymentRefund::mk()->where($where)->sum('refund_amount');
+        $rWhere = ['record_code' => $pCode, 'refund_status' => 1];
+        $rAmount = PluginPaymentRefund::mk()->where($rWhere)->sum('refund_amount');
         $record->save(['refund_amount' => $rAmount, 'refund_status' => intval($rAmount > 0)]);
-        // 应用此次是否退款
-        if (is_numeric($amount)) {
-            if ($record->getAttr('refund_amount') > 0) {
-                if ($record->getAttr('refund_amount') >= $record->getAttr('payment_amount')) {
-                    throw new Exception('退款已完成！', 1);
-                }
-                if ($record->getAttr('refund_amount') > $record->getAttr('payment_amount') - floatval($amount)) {
-                    throw new Exception('退款金额超出！', 0);
-                }
+        // 是否需要写入退款
+        if (!is_numeric($amount)) return $record->refresh();
+        // 生成退款记录
+        $pType = $record->getAttr('channel_type');
+        $extra = ['used_payment' => $amount, 'refund_status' => 0];
+        if (in_array($pType, [Payment::EMPTY, Payment::BALANCE, Payment::INTEGRAL, Payment::VOUCHER])) {
+            if ($pType === Payment::BALANCE) $extra['used_balance'] = $amount;
+            elseif ($pType === Payment::INTEGRAL) {
+                $extra['used_integral'] = intval(floatval($amount) / floatval($record->getAttr('payment_amount')) * $record->getAttr('used_integral'));
             }
-            $extra = [];
-            // 生成退款记录
-            $rCode = Payment::withRefundCode();
-            $pType = $record->getAttr('channel_type');
-            if (in_array($pType, [Payment::BALANCE, Payment::INTEGRAL, Payment::VOUCHER, Payment::EMPTY])) {
-                if ($pType === Payment::BALANCE) $extra['used_balance'] = $amount;
-                elseif ($pType === Payment::VOUCHER) $extra['used_payment'] = $amount;
-                elseif ($pType === Payment::INTEGRAL) {
-                    $extra['used_integral'] = floatval($amount) / floatval($record->getAttr('payment_amount')) * $record->getAttr('used_integral');
-                }
-                $extra['refund_trade'] = CodeExtend::uniqidNumber(16, 'RT');
-                $extra['refund_account'] = $pType;
-                $extra['refund_scode'] = 'SUCCESS';
-                $extra['refund_status'] = 1;
-                $extra['refund_time'] = date('Y-m-d H:i:s');
-            } else {
-                $extra['refund_status'] = 0;
-                $extra['used_payment'] = $amount;
-            }
+            $extra['refund_trade'] = CodeExtend::uniqidNumber(16, 'RT');
+            $extra['refund_account'] = $pType;
+            $extra['refund_scode'] = 'SUCCESS';
+            $extra['refund_status'] = 1;
+            $extra['refund_time'] = date('Y-m-d H:i:s');
+        }
+        // 支付金额大于0，并需要创建退款记录
+        if ($record->getAttr('payment_amount') > 0 && $rAmount + floatval($amount) <= $record->getAttr('payment_amount')) {
             PluginPaymentRefund::mk()->save(array_merge([
-                'unid'          => $record->getAttr('unid'),
-                'usid'          => $record->getAttr('usid'),
-                'code'          => $rCode,
-                'record_code'   => $pCode,
-                'refund_amount' => $amount,
-                'refund_remark' => $reason,
+                'unid' => $record->getAttr('unid'), 'record_code' => $pCode,
+                'usid' => $record->getAttr('usid'), 'refund_amount' => $amount,
+                'code' => $rCode = Payment::withRefundCode(), 'refund_remark' => $reason,
             ], $extra));
             // 刷新退款金额
-            if (in_array($pType, [Payment::VOUCHER, Payment::BALANCE, Payment::INTEGRAL, Payment::EMPTY])) {
-                $map = ['record_code' => $pCode, 'refund_status' => 1];
-                $extra = ['refund_status' => 1, 'refund_amount' => PluginPaymentRefund::mk()->where($map)->sum('refund_amount')];
-                if ($pType === Payment::VOUCHER) {
-                    $extra['audit_time'] = date('Y-m-d H:i:s');
-                    $extra['audit_status'] = 0;
-                }
-                $record->save($extra);
-            }
+            $rAmount = PluginPaymentRefund::mk()->where($rWhere)->sum('refund_amount');
         }
+        // 刷新退款金额
+        $record->save([
+            'refund_status' => 1,
+            'refund_amount' => $rAmount,
+            'audit_time'    => date('Y-m-d H:i:s'),
+            'audit_user'    => AdminService::getUserId(),
+            'audit_status'  => 0,
+            'audit_remark'  => '已申请取消支付，' . ($reason ?: '后台取消！')
+        ]);
+        // 触发取消支付事件
+        Library::$sapp->event->trigger('PluginPaymentCancel', $record->refresh()->toArray());
         return $record;
     }
 

@@ -35,7 +35,7 @@
                 },
                 {
                     field: 'amount', title: '交易金额', sort: true, minWidth: 180, width: '15%', templet: function (d) {
-                        return laytpl('<div>交易金额：<b class="color-blue">{{d.amount}}</b> 积分<br>交易单号：<b class="color-blue">{{d.code||"-"}}</b></div>').render(d);
+                        return laytpl('<div>交易金额：<b class="color-blue">{{Number(d.amount)}}</b> 积分<br>交易单号：<b class="color-blue">{{d.code||"-"}}</b></div>').render(d);
                     }
                 },
                 {
@@ -65,7 +65,7 @@
 
         // 数据状态切换操作
         layui.form.on('switch(StatusSwitch)', function (obj) {
-            var data = {code: obj.value, cancel: obj.elem.checked > 0 ? 0 : 1};
+            let data = {code: obj.value, cancel: obj.elem.checked > 0 ? 0 : 1};
             $.form.load("{:url('cancel')}", data, 'post', function (ret) {
                 if (ret.code < 1) $.msg.error(ret.info, 3, function () {
                     $('#IntegralTable').trigger('reload');

@@ -105,7 +105,7 @@ class EmptyPayment implements PaymentInterface
     public function refund(string $pcode, string $amount, string $reason = ''): array
     {
         try {
-            $this->app->db->transaction(function () use ($pcode, $amount, $reason) {
+            $this->app->db->transaction(static function () use ($pcode, $amount, $reason) {
                 static::syncRefund($pcode, $rcode, $amount, $reason);
             });
             return [1, '发起退款成功！'];

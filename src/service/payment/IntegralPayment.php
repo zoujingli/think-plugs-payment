@@ -76,7 +76,7 @@ class IntegralPayment implements PaymentInterface
     public function refund(string $pcode, string $amount, string $reason = ''): array
     {
         try {
-            $this->app->db->transaction(function () use ($pcode, $reason, $amount) {
+            $this->app->db->transaction(static function () use ($pcode, $reason, $amount) {
                 // 记录退款
                 $record = static::syncRefund($pcode, $rcode, $amount, $reason);
                 // 退回积分

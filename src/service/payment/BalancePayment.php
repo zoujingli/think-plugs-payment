@@ -77,7 +77,7 @@ class BalancePayment implements PaymentInterface
     {
         try {
             // 同步已退款状态
-            $this->app->db->transaction(function () use ($pcode, $amount, $reason) {
+            $this->app->db->transaction(static function () use ($pcode, $amount, $reason) {
                 // 记录退款
                 $record = static::syncRefund($pcode, $rcode, $amount, $reason);
                 // 退回余额
@@ -110,7 +110,7 @@ class BalancePayment implements PaymentInterface
         try {
             $this->checkLeaveAmount($orderNo, $payAmount, $orderAmount);
             [$data, $unid, $payCode] = [[], $this->withUserUnid($account), Payment::withPaymentCode()];
-            $this->app->db->transaction(function () use (&$data, $unid, $orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, $payRemark) {
+            $this->app->db->transaction(static function () use (&$data, $unid, $orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, $payRemark) {
                 // 检查能否支付
                 $data = BalanceService::recount($unid);
                 if ($payAmount > $data['usable']) throw new Exception('账户余额不足');
