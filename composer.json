@@ -9,7 +9,6 @@
       "email": "zoujingli@qq.com"
     }
   ],
-  "version": "dev-master",
   "require": {
     "php": ">=7.1",
     "ext-json": "*",
