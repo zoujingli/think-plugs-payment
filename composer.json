@@ -12,8 +12,8 @@
   "require": {
     "php": ">=7.1",
     "ext-json": "*",
-    "zoujingli/think-plugs-admin": "^1.0|dev-master",
-    "zoujingli/think-plugs-account": "^1.0|dev-master"
+    "zoujingli/think-plugs-admin": "^1.0|@dev",
+    "zoujingli/think-plugs-account": "^1.0|@dev"
   },
   "require-dev": {
     "phpunit/phpunit": "*"
