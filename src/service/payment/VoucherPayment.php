@@ -105,6 +105,6 @@ class VoucherPayment implements PaymentInterface
         // 生成新的待审核记录
         [$payCode,] = [Payment::withPaymentCode(), $this->withUserUnid($account)];
         $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, $payImages);
-        return PaymentResponse::mk(true, '凭证上传成功！', $data);
+        return PaymentResponse::mk(true, '上传成功！', $data);
     }
 }

@@ -322,7 +322,7 @@ abstract class Payment
     }
 
     /**
-     * 筛选支付方式
+     * 通过接口类型筛选支付方式
      * @param string $account 指定终端
      * @param boolean $getfull 读取参数
      * @return array
