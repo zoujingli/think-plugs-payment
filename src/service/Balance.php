@@ -111,14 +111,20 @@ abstract class Balance
 
     /**
      * 刷新用户余额
-     * @param integer $unid
+     * @param integer $unid 指定用户编号
+     * @param array|null &$data 非数组时更新数据
      * @return array [lock,used,total,usable]
      * @throws \think\admin\Exception
      */
-    public static function recount(int $unid): array
+    public static function recount(int $unid, ?array &$data = null): array
     {
-        $user = PluginAccountUser::mk()->findOrEmpty($unid);
-        if ($user->isEmpty()) throw new Exception('账号不存在！');
+        $isUpdate = !is_array($data);
+        if ($isUpdate) $data = [];
+
+        if ($isUpdate) {
+            $user = PluginAccountUser::mk()->findOrEmpty($unid);
+            if ($user->isEmpty()) throw new Exception('账号不存在！');
+        }
 
         // 统计用户余额数据
         $map = ['unid' => $unid, 'cancel' => 0, 'deleted' => 0];
@@ -127,11 +133,11 @@ abstract class Balance
         $total = PluginPaymentBalance::mk()->where($map)->where('amount', '>', '0')->sum('amount');
 
         // 更新余额统计
-        $data = [
-            'balance_lock'  => $lock, 'balance_used' => abs($used),
-            'balance_total' => $total, 'balance_usable' => $total - abs($used),
-        ];
-        $user->save(['extra' => array_merge($user->getAttr('extra'), $data)]);
+        $data['balance_lock'] = $lock;
+        $data['balance_used'] = abs($used);
+        $data['balance_total'] = $total;
+        $data['balance_usable'] = $total - abs($used);
+        if ($isUpdate) $user->save(['extra' => array_merge($user->getAttr('extra'), $data)]);
         return ['lock' => $lock, 'used' => abs($used), 'total' => $total, 'usable' => $data['balance_usable']];
     }
 

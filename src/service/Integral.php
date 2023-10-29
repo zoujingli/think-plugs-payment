@@ -124,15 +124,19 @@ abstract class Integral
 
     /**
      * 刷新用户积分
-     * @param integer $unid
+     * @param integer $unid 指定用户编号
+     * @param array|null &$data 非数组时更新数据
      * @return array [lock,used,total,usable]
      * @throws \think\admin\Exception
      */
-    public static function recount(int $unid): array
+    public static function recount(int $unid, ?array &$data = null): array
     {
-        $user = PluginAccountUser::mk()->findOrEmpty($unid);
-        if ($user->isEmpty()) throw new Exception('账号不存在！');
-
+        $isUpdate = !is_array($data);
+        if ($isUpdate) $data = [];
+        if ($isUpdate) {
+            $user = PluginAccountUser::mk()->findOrEmpty($unid);
+            if ($user->isEmpty()) throw new Exception('账号不存在！');
+        }
         // 统计用户积分数据
         $map = ['unid' => $unid, 'cancel' => 0, 'deleted' => 0];
         $lock = intval(PluginPaymentIntegral::mk()->where($map)->where('unlock', '=', '0')->sum('amount'));
@@ -140,11 +144,11 @@ abstract class Integral
         $total = intval(PluginPaymentIntegral::mk()->where($map)->where('amount', '>', '0')->sum('amount'));
 
         // 更新积分统计
-        $data = [
-            'integral_lock'  => $lock, 'integral_used' => abs($used),
-            'integral_total' => $total, 'integral_usable' => $total - abs($used),
-        ];
-        $user->save(['extra' => array_merge($user->getAttr('extra'), $data)]);
+        $data['integral_lock'] = $lock;
+        $data['integral_used'] = abs($used);
+        $data['integral_total'] = $total;
+        $data['integral_usable'] = $total - abs($used);
+        if ($isUpdate) $user->save(['extra' => array_merge($user->getAttr('extra'), $data)]);
         return ['lock' => $lock, 'used' => abs($used), 'total' => $total, 'usable' => $data['integral_usable']];
     }
 
