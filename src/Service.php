@@ -35,7 +35,7 @@ class Service extends Plugin
      * 定义插件名称
      * @var string
      */
-    protected $appName = '多端支付管理';
+    protected $appName = '支付管理';
 
     /**
      * 定义安装包名
