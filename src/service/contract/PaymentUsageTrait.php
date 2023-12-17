@@ -42,6 +42,12 @@ trait PaymentUsageTrait
     protected $app;
 
     /**
+     * 标准返回对象
+     * @var PaymentResponse
+     */
+    protected $res;
+
+    /**
      * 支付调度参数
      * @var array
      */
@@ -80,6 +86,9 @@ trait PaymentUsageTrait
         $this->cfgCode = $code;
         $this->cfgType = $type;
         $this->cfgParams = $params;
+        $this->res = new PaymentResponse();
+        $this->res->channleCode = $code;
+        $this->res->channelType = $type;
         $this->init();
     }
 

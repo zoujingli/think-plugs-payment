@@ -91,7 +91,7 @@ class JoinPayment implements PaymentInterface
             // 创建支付记录
             $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
             // 返回支付参数
-            return PaymentResponse::mk(true, '创建支付成功!', $data, json_decode($result['rc_Result'], true));
+            return $this->res->set(true, '创建支付成功!', $data, json_decode($result['rc_Result'], true));
         } else {
             throw new Exception($result['rb_CodeMsg'] ?? '获取预支付码失败！');
         }
@@ -110,9 +110,10 @@ class JoinPayment implements PaymentInterface
     /**
      * 支付结果处理
      * @param array|null $data
+     * @param array|null $notify
      * @return \think\Response
      */
-    public function notify(?array $data = null): Response
+    public function notify(?array $data = null, ?array $notify = null): Response
     {
         $notify = $data ?: $this->app->request->get();
         foreach ($notify as &$item) $item = urldecode($item);

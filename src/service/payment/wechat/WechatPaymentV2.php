@@ -87,7 +87,7 @@ class WechatPaymentV2 extends WechatPayment
                 // 创建支付记录
                 $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
                 // 返回支付参数
-                return PaymentResponse::mk(true, "创建支付成功！", $data, $param);
+                return $this->res->set(true, "创建支付成功！", $data, $param);
             }
             throw new Exception($info['err_code_des'] ?? '获取预支付码失败！');
         } catch (Exception $exception) {

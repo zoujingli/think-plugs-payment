@@ -125,7 +125,7 @@ class BalancePayment implements PaymentInterface
             // 刷新用户余额
             BalanceService::recount($unid);
             // 返回支付结果
-            return PaymentResponse::mk(true, '余额支付完成！', $data);
+            return $this->res->set(true, '余额支付完成！', $data);
         } catch (Exception $exception) {
             throw $exception;
         } catch (\Exception $exception) {

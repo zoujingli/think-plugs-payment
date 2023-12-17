@@ -123,7 +123,7 @@ class IntegralPayment implements PaymentInterface
             // 刷新用户积分
             IntegralService::recount($unid);
             // 返回支付结果
-            return PaymentResponse::mk(true, '积分抵扣完成！', $data);
+            return $this->res->set(true, '积分抵扣完成！', $data);
         } catch (Exception $exception) {
             throw $exception;
         } catch (\Exception $exception) {

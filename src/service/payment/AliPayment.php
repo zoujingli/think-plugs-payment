@@ -113,7 +113,7 @@ class AliPayment implements PaymentInterface
             // 创建支付记录
             $data = $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
             // 返回支付参数
-            return PaymentResponse::mk(true, "创建支付成功！", $data, [$payment->apply($param)]);
+            return $this->res->set(true, "创建支付成功！", $data, [$payment->apply($param)]);
         } catch (Exception $exception) {
             throw $exception;
         } catch (\Exception $exception) {

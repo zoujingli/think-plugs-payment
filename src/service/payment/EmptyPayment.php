@@ -66,7 +66,7 @@ class EmptyPayment implements PaymentInterface
                 $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
                 $data = $this->updateAction($payCode, CodeExtend::uniqidNumber(18, 'EMT'), $payAmount, '无需支付');
             });
-            return PaymentResponse::mk(true, "订单无需支付！", $data);
+            return $this->res->set(true, "订单无需支付！", $data);
         } catch (Exception $exception) {
             throw $exception;
         } catch (\Exception $exception) {
