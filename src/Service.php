@@ -3,7 +3,7 @@
 // +----------------------------------------------------------------------
 // | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
-// | 版权所有 2022~2023 ThinkAdmin [ thinkadmin.top ]
+// | 版权所有 2022~2024 ThinkAdmin [ thinkadmin.top ]
 // +----------------------------------------------------------------------
 // | 官方网站: https://thinkadmin.top
 // +----------------------------------------------------------------------
@@ -71,7 +71,7 @@ class Service extends Plugin
             [
                 'name' => '支付管理',
                 'subs' => [
-                    ['name' => '支付通道管理', 'icon' => 'layui-icon layui-icon-user', 'node' => "{$code}/config/index"],
+                    ['name' => '支付配置管理', 'icon' => 'layui-icon layui-icon-user', 'node' => "{$code}/config/index"],
                     ['name' => '账号余额管理', 'icon' => 'layui-icon layui-icon-cellphone', 'node' => "{$code}/balance/index"],
                     ['name' => '账号积分管理', 'icon' => 'layui-icon layui-icon-find-fill', 'node' => "{$code}/integral/index"],
                     ['name' => '支付行为管理', 'icon' => 'layui-icon layui-icon-edge', 'node' => "{$code}/record/index"],

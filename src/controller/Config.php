@@ -10,7 +10,7 @@ use think\admin\extend\CodeExtend;
 use think\admin\helper\QueryHelper;
 
 /**
- * 支付通道管理
+ * 支付配置管理
  * @class Config
  * @package plugin\payment\controller
  */
@@ -18,7 +18,7 @@ class Config extends Controller
 {
 
     /**
-     * 支付通道管理
+     * 支付配置管理
      * @auth true
      * @menu true
      * @throws \think\db\exception\DataNotFoundException
@@ -29,7 +29,7 @@ class Config extends Controller
     {
         $this->type = $this->get['type'] ?? 'index';
         PluginPaymentConfig::mQuery()->layTable(function () {
-            $this->title = '支付通道管理';
+            $this->title = '支付配置管理';
             $this->types = Payment::types(1);
         }, function (QueryHelper $query) {
             $query->withoutField('content');
@@ -39,7 +39,7 @@ class Config extends Controller
     }
 
     /**
-     * 获取支付通道
+     * 获取支付配置
      * @param array $data
      * @return void
      */
@@ -55,22 +55,22 @@ class Config extends Controller
     }
 
     /**
-     * 添加支付通道
+     * 添加支付配置
      * @auth true
      */
     public function add()
     {
-        $this->title = '添加支付通道';
+        $this->title = '添加支付配置';
         PluginPaymentConfig::mForm('form');
     }
 
     /**
-     * 编辑支付通道
+     * 编辑支付配置
      * @auth true
      */
     public function edit()
     {
-        $this->title = '编辑支付通道';
+        $this->title = '编辑支付配置';
         PluginPaymentConfig::mForm('form');
     }
 
@@ -99,7 +99,7 @@ class Config extends Controller
             }
         } else {
             if (empty($data['type'])) $this->error('请选择支付方式！');
-            if (empty($data['cover'])) $this->error('请上传支付通道图标！');
+            if (empty($data['cover'])) $this->error('请上传支付图标！');
             // 保存配置参数
             $data['content'] = $this->request->post();
             $fields = PluginPaymentConfig::mk()->getTableFields();
@@ -134,7 +134,7 @@ class Config extends Controller
     }
 
     /**
-     * 删除支付通道
+     * 删除支付配置
      * @auth true
      */
     public function remove()

@@ -3,7 +3,7 @@
 // +----------------------------------------------------------------------
 // | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
-// | 版权所有 2022~2023 ThinkAdmin [ thinkadmin.top ]
+// | 版权所有 2022~2024 ThinkAdmin [ thinkadmin.top ]
 // +----------------------------------------------------------------------
 // | 官方网站: https://thinkadmin.top
 // +----------------------------------------------------------------------
@@ -30,14 +30,14 @@ use think\admin\helper\QueryHelper;
 class Balance extends Auth
 {
     /**
-     * 获取用户余额记录
+     * 获取余额记录
      * @return void
      */
     public function get()
     {
         PluginPaymentBalance::mQuery(null, function (QueryHelper $query) {
             $query->where(['unid' => $this->unid])->order('id desc');
-            $this->success('获取余额记录！', $query->page(intval(input('page', 1)), false, false, 10));
+            $this->success('获取余额记录！', $query->page(intval(input('page', 1)), false, false, 20));
         });
     }
 }

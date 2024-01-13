@@ -3,7 +3,7 @@
 // +----------------------------------------------------------------------
 // | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
-// | 版权所有 2022~2023 ThinkAdmin [ thinkadmin.top ]
+// | 版权所有 2022~2024 ThinkAdmin [ thinkadmin.top ]
 // +----------------------------------------------------------------------
 // | 官方网站: https://thinkadmin.top
 // +----------------------------------------------------------------------
@@ -28,6 +28,10 @@ use plugin\payment\model\PluginPaymentAddress;
  */
 class Address extends Auth
 {
+    /**
+     * 初始化检查
+     * @return void
+     */
     protected function initialize()
     {
         parent::initialize();

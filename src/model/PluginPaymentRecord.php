@@ -3,7 +3,7 @@
 // +----------------------------------------------------------------------
 // | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
-// | 版权所有 2022~2023 ThinkAdmin [ thinkadmin.top ]
+// | 版权所有 2022~2024 ThinkAdmin [ thinkadmin.top ]
 // +----------------------------------------------------------------------
 // | 官方网站: https://thinkadmin.top
 // +----------------------------------------------------------------------
@@ -18,6 +18,8 @@ declare (strict_types=1);
 
 namespace plugin\payment\model;
 
+use plugin\account\model\Abs;
+use plugin\account\model\PluginAccountBind;
 use plugin\account\model\PluginAccountUser;
 use plugin\payment\service\Payment;
 use think\model\relation\HasOne;
@@ -39,12 +41,21 @@ class PluginPaymentRecord extends Abs
     }
 
     /**
+     * 关联客户端数据
+     * @return \think\model\relation\HasOne
+     */
+    public function device(): HasOne
+    {
+        return $this->hasOne(PluginAccountBind::class, 'id', 'usid');
+    }
+
+    /**
      * @param $value
      * @return array
      */
     public function getUserAttr($value): array
     {
-        return !is_array($value) ? [] : $value;
+        return is_array($value) ? $value : [];
     }
 
     /**
@@ -57,11 +68,6 @@ class PluginPaymentRecord extends Abs
         return $this->getCreateTimeAttr($value);
     }
 
-    /**
-     * 格式化时间
-     * @param mixed $value
-     * @return string
-     */
     public function setAuditTimeAttr($value): string
     {
         return $this->setCreateTimeAttr($value);
@@ -77,11 +83,6 @@ class PluginPaymentRecord extends Abs
         return $this->getCreateTimeAttr($value);
     }
 
-    /**
-     * 格式化输出时间
-     * @param mixed $value
-     * @return string
-     */
     public function setPaymentTimeAttr($value): string
     {
         return $this->setCreateTimeAttr($value);
@@ -94,7 +95,9 @@ class PluginPaymentRecord extends Abs
     public function toArray(): array
     {
         $data = parent::toArray();
-        $data['channel_type_name'] = Payment::typeName($data['channel_type']);
+        if (isset($data['channel_type'])) {
+            $data['channel_type_name'] = Payment::typeName($data['channel_type']);
+        }
         return $data;
     }
 }

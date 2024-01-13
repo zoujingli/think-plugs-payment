@@ -3,7 +3,7 @@
 // +----------------------------------------------------------------------
 // | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
-// | 版权所有 2022~2023 ThinkAdmin [ thinkadmin.top ]
+// | 版权所有 2022~2024 ThinkAdmin [ thinkadmin.top ]
 // +----------------------------------------------------------------------
 // | 官方网站: https://thinkadmin.top
 // +----------------------------------------------------------------------
@@ -130,5 +130,20 @@ class Record extends Controller
         } catch (\Exception $exception) {
             $this->error($exception->getMessage());
         }
+    }
+
+    /**
+     * 重新触发支付行为
+     * @auth true
+     * @return void
+     */
+    public function notify()
+    {
+        $data = $this->_vali(['code.require' => '支付单号不能为空！']);
+        $record = PluginPaymentRecord::mk()->where(['code' => $data['code']])->findOrEmpty();
+        if ($record->isEmpty()) $this->error('支付单号异常！');
+        if (empty($record->getAttr('payment_status'))) $this->error('未完成支付！');
+        $this->app->event->trigger('PluginPaymentSuccess', $record);
+        $this->success('重新触发支付行为！');
     }
 }

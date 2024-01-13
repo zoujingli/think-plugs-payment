@@ -5,7 +5,7 @@
     <div class="layui-card-body padding-left-40" style="max-width:800px">
 
         <div class="layui-form-item">
-            <span class="help-label label-required-prev"><b>支付通道方式</b>Payment Type</span>
+            <span class="help-label label-required-prev"><b>支付方式</b>Payment Type</span>
             {empty name='vo.type'}
             <select name="type" class="layui-select" lay-filter="payment-type" lay-search>
                 {foreach $payments as $k=>$v}{if isset($vo.type) and $vo.type eq $k}
@@ -28,15 +28,15 @@
         </div>
 
         <label class="layui-form-item relative block">
-            <span class="help-label"><b>支付通道名称</b>Payment Name</span>
-            <input class="layui-input" maxlength="50" name="name" vali-name="支付通道名称" placeholder="请输入支付名称" required value="{$vo.name|default=''}"/>
-            <span class="help-block"><b>必填，</b>请填写支付通道名称，支付名称尽量不要重复，建议字符长度为 4-8 个汉字。</span>
+            <span class="help-label"><b>支付名称</b>Payment Name</span>
+            <input class="layui-input" maxlength="50" name="name" vali-name="支付名称" placeholder="请输入支付名称" required value="{$vo.name|default=''}"/>
+            <span class="help-block"><b>必填，</b>请填写支付名称，支付名称尽量不要重复，建议字符长度为 4-8 个汉字。</span>
         </label>
 
         <div class="layui-form-item label-required-prev">
-            <span class="help-label"><b>支付通道图标</b>Payment Image</span>
+            <span class="help-label"><b>支付图标</b>Payment Image</span>
             <div class="relative block label-required-null">
-                <input class="layui-input think-bg-gray" pattern="^https?://" name="cover" vali-name="支付通道图标" placeholder="请上传支付通道图标" required value='{$vo.cover|default=""}'>
+                <input class="layui-input think-bg-gray" pattern="^https?://" name="cover" vali-name="支付图标" placeholder="请上传支付图标" required value='{$vo.cover|default=""}'>
                 <a class="layui-icon layui-icon-upload input-right-icon" data-field="cover" data-file data-type="png,jpg,gif,jpeg"></a>
                 <script>$('[name="cover"]').uploadOneImage()</script>
             </div>

@@ -3,7 +3,7 @@
 // +----------------------------------------------------------------------
 // | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
-// | 版权所有 2022~2023 ThinkAdmin [ thinkadmin.top ]
+// | 版权所有 2022~2024 ThinkAdmin [ thinkadmin.top ]
 // +----------------------------------------------------------------------
 // | 官方网站: https://thinkadmin.top
 // +----------------------------------------------------------------------
@@ -44,6 +44,7 @@ class Recount extends Queue
     /**
      * 刷新用户余额
      * @return static
+     * @throws \think\admin\Exception
      * @throws \think\db\exception\DbException
      */
     private function balance(): Recount
@@ -52,8 +53,7 @@ class Recount extends Queue
         foreach (PluginAccountUser::mk()->field('id')->cursor() as $user) try {
             $nick = $user['username'] ?: ($user['nickname'] ?: $user['email']);
             $this->setQueueMessage($total, ++$count, "开始刷新用户 [{$user['id']} {$nick}] 余额及积分");
-            BalanceAlias::recount(intval($user['id']));
-            IntegralAlias::recount(intval($user['id']));
+            BalanceAlias::recount(intval($user['id'])) && IntegralAlias::recount(intval($user['id']));
             $this->setQueueMessage($total, $count, "刷新用户 [{$user['id']} {$nick}] 余额及积分", 1);
         } catch (\Exception $exception) {
             $this->setQueueMessage($total, $count, "刷新用户 [{$user['id']} {$nick}] 余额及积分失败, {$exception->getMessage()}", 1);

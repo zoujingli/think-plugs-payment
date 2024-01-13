@@ -3,7 +3,7 @@
 // +----------------------------------------------------------------------
 // | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
-// | 版权所有 2022~2023 ThinkAdmin [ thinkadmin.top ]
+// | 版权所有 2022~2024 ThinkAdmin [ thinkadmin.top ]
 // +----------------------------------------------------------------------
 // | 官方网站: https://thinkadmin.top
 // +----------------------------------------------------------------------
@@ -17,6 +17,8 @@
 declare (strict_types=1);
 
 namespace plugin\payment\model;
+
+use plugin\account\model\Abs;
 
 /**
  * 用户支付参数模型
@@ -35,7 +37,7 @@ class PluginPaymentConfig extends Abs
      */
     public function setContentAttr($value): string
     {
-        return is_array($value) ? json_encode($value, 64 | 256) : (string)$value;
+        return $this->setExtraAttr($value);
     }
 
     /**
@@ -45,6 +47,6 @@ class PluginPaymentConfig extends Abs
      */
     public function getContentAttr($value): array
     {
-        return is_string($value) ? json_decode($value, true) : [];
+        return $this->getExtraAttr($value);
     }
 }

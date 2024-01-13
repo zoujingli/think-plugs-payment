@@ -3,7 +3,7 @@
 // +----------------------------------------------------------------------
 // | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
-// | 版权所有 2022~2023 ThinkAdmin [ thinkadmin.top ]
+// | 版权所有 2022~2024 ThinkAdmin [ thinkadmin.top ]
 // +----------------------------------------------------------------------
 // | 官方网站: https://thinkadmin.top
 // +----------------------------------------------------------------------
@@ -18,6 +18,7 @@ declare (strict_types=1);
 
 namespace plugin\payment\model;
 
+use plugin\account\model\Abs;
 use plugin\account\model\PluginAccountUser;
 use think\model\relation\HasOne;
 
@@ -47,15 +48,6 @@ class PluginPaymentRefund extends Abs
     }
 
     /**
-     * @param $value
-     * @return array
-     */
-    public function getUserAttr($value): array
-    {
-        return !is_array($value) ? [] : $value;
-    }
-
-    /**
      * 格式化输出时间
      * @param mixed $value
      * @return string
@@ -63,5 +55,10 @@ class PluginPaymentRefund extends Abs
     public function getRefundTimeAttr($value): string
     {
         return format_datetime($value);
+    }
+
+    public function setRefundTimeAttr($value): string
+    {
+        return $this->setCreateTimeAttr($value);
     }
 }

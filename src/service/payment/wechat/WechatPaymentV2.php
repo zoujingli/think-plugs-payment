@@ -3,7 +3,7 @@
 // +----------------------------------------------------------------------
 // | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
-// | 版权所有 2022~2023 ThinkAdmin [ thinkadmin.top ]
+// | 版权所有 2022~2024 ThinkAdmin [ thinkadmin.top ]
 // +----------------------------------------------------------------------
 // | 官方网站: https://thinkadmin.top
 // +----------------------------------------------------------------------
@@ -40,7 +40,7 @@ class WechatPaymentV2 extends WechatPayment
     private $payment;
 
     /**
-     * 初始化支付通道
+     * 初始化支付配置
      * @return PaymentInterface
      */
     public function init(): PaymentInterface

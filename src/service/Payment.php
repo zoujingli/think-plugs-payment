@@ -3,7 +3,7 @@
 // +----------------------------------------------------------------------
 // | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
-// | 版权所有 2022~2023 ThinkAdmin [ thinkadmin.top ]
+// | 版权所有 2022~2024 ThinkAdmin [ thinkadmin.top ]
 // +----------------------------------------------------------------------
 // | 官方网站: https://thinkadmin.top
 // +----------------------------------------------------------------------
@@ -37,7 +37,7 @@ use think\db\Query;
 use think\db\Raw;
 
 /**
- * 支付通道调度器
+ * 支付配置调度器
  * @class Payment
  * @package plugin\payment\service
  */
@@ -187,7 +187,7 @@ abstract class Payment
     ];
 
     /**
-     * 实例化支付通道
+     * 实例化支付配置
      * @param string $code 编号或类型
      * @return PaymentInterface
      * @throws \think\admin\Exception
@@ -228,8 +228,8 @@ abstract class Payment
 
     /**
      * 获取支付参数
-     * @param string $code 支付通道编号
-     * @param array $config 支付通道参数
+     * @param string $code 支付配置编号
+     * @param array $config 支付配置参数
      * @return array [type, attr, params]
      * @throws Exception
      */
@@ -241,13 +241,13 @@ abstract class Payment
                 $config = PluginPaymentConfig::mk()->where($map)->findOrEmpty()->toArray();
             }
             if (empty($config)) {
-                throw new Exception("支付通道[#{$code}]参数异常！");
+                throw new Exception("支付配置[#{$code}]参数异常！");
             }
             $params = is_string($config['content']) ? @json_decode($config['content'], true) : $config['content'];
-            if (empty($params)) throw new Exception("支付通道[#{$code}]参数无效！");
+            if (empty($params)) throw new Exception("支付配置[#{$code}]参数无效！");
 
             if (empty(self::$types[$config['type']]['status'])) {
-                throw new Exception("支付通道[@{$config['type']}]未启用！");
+                throw new Exception("支付配置[@{$config['type']}]未启用！");
             }
             return [$config['type'], self::$types[$config['type']], $params];
         } catch (\Exception $exception) {
@@ -351,7 +351,7 @@ abstract class Payment
     }
 
     /**
-     * 读取支付通道
+     * 读取支付配置
      * @return array
      */
     public static function items(): array

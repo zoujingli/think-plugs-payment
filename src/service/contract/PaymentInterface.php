@@ -3,7 +3,7 @@
 // +----------------------------------------------------------------------
 // | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
-// | 版权所有 2022~2023 ThinkAdmin [ thinkadmin.top ]
+// | 版权所有 2022~2024 ThinkAdmin [ thinkadmin.top ]
 // +----------------------------------------------------------------------
 // | 官方网站: https://thinkadmin.top
 // +----------------------------------------------------------------------
@@ -28,6 +28,13 @@ use think\Response;
  */
 interface PaymentInterface
 {
+
+    /**
+     * 获取支付参数
+     * @return array
+     */
+    public function config(): array;
+
     /**
      * 创建支付订单
      * @param AccountInterface $account 支付账号

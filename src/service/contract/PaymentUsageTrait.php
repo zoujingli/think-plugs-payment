@@ -3,7 +3,7 @@
 // +----------------------------------------------------------------------
 // | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
-// | 版权所有 2022~2023 ThinkAdmin [ thinkadmin.top ]
+// | 版权所有 2022~2024 ThinkAdmin [ thinkadmin.top ]
 // +----------------------------------------------------------------------
 // | 官方网站: https://thinkadmin.top
 // +----------------------------------------------------------------------
@@ -90,6 +90,15 @@ trait PaymentUsageTrait
         $this->res->channleCode = $code;
         $this->res->channelType = $type;
         $this->init();
+    }
+
+    /**
+     * 获取支付参数
+     * @return array
+     */
+    public function config(): array
+    {
+        return $this->config;
     }
 
     /**

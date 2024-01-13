@@ -3,7 +3,7 @@
 // +----------------------------------------------------------------------
 // | Payment Plugin for ThinkAdmin
 // +----------------------------------------------------------------------
-// | 版权所有 2022~2023 ThinkAdmin [ thinkadmin.top ]
+// | 版权所有 2022~2024 ThinkAdmin [ thinkadmin.top ]
 // +----------------------------------------------------------------------
 // | 官方网站: https://thinkadmin.top
 // +----------------------------------------------------------------------
@@ -42,7 +42,7 @@ class WechatPaymentV3 extends WechatPayment
     private $payment;
 
     /**
-     * 支付通道初始化
+     * 支付配置初始化
      * @return PaymentInterface
      * @throws \WeChat\Exceptions\InvalidResponseException
      * @throws \WeChat\Exceptions\LocalCacheException
@@ -112,7 +112,7 @@ class WechatPaymentV3 extends WechatPayment
         try {
             $result = $this->payment->query($pcode);
             if (isset($result['trade_state']) && $result['trade_state'] === 'SUCCESS') {
-                $this->updateAction($result['out_trade_no'], strval($result['amount']['total'] / 100), $result['transaction_id'] ?? '');
+                $this->updateAction($result['out_trade_no'], $result['transaction_id'] ?? '', strval($result['amount']['total'] / 100));
             }
             return $result;
         } catch (\Exception $exception) {
