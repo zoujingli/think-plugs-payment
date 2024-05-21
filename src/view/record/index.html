@@ -1,11 +1,5 @@
 {extend name="table"}
 
-{block name="button"}
-<!--{if auth("queue")}-->
-<!--<button class='layui-btn layui-btn-sm layui-btn-primary' data-queue='{:url("queue")}'>刷新领取次数</button>-->
-<!--{/if}-->
-{/block}
-
 {block name="content"}
 <div class="{$mode==='modal'?'':'think-box-shadow'}">
     {include file='record/index_search'}
@@ -17,7 +11,7 @@
 <script>
     $(function () {
         $('#PaymentRecordTable').layTable({
-            even: true, height: 'full', width: 'full', sort: {field: 'id', type: 'desc'}, cellExpandedMode: 'tips',
+            even: true, height: 'full', sort: {field: 'id', type: 'desc'}, cellExpandedMode: 'tips',
             cols: [[
                 /* {if $mode neq 'modal'} */
                 {field: 'headimg', title: '头像', width: 85, align: 'center', templet: '<div>{{-showTableImage(d.user.headimg,true,"md")}}</div>'},
@@ -73,7 +67,7 @@
                         tpls.push('交易单号：<b class="color-blue">{{d.payment_trade||"-"}}</b>');
                         tpls.push('操作描述：{{d.payment_remark||"-"}}');
                         let badge = '<div class="layui-badge layui-badge-middle {{d.typeColor}} pull-left ta-mr-5">{{-d.typeInfo}}</div>';
-                        return laytpl(badge + tpls.join('<br>')).render(d);
+                        return laytpl('<div class="nowrap">' + badge + tpls.join('<br>') + '</div>').render(d);
                     }
                 },
                 {
@@ -92,9 +86,12 @@
                         return laytpl(tpls.join('<br>')).render(d)
                     }
                 },
-                /* {if auth("audit")} */
-                {field: 'id', toolbar: '#toolbarPayment', title: '操作面板', align: 'center', minWidth: 120, fixed: 'right'}
-                /* {/if} */
+                {
+                    field: 'id', templet: function (d) {
+                        let h = $('#toolbarPayment').html();
+                        return laytpl('<div class="flex-center full-height" style="margin-top:-3px">' + h + '</div>').render(d)
+                    }, style: 'display:flex', title: '操作面板', align: 'center', minWidth: 120, fixed: 'right'
+                }
             ]]
         });
     });
@@ -104,11 +101,13 @@
 
     <!-- {if auth('cancel')}-->
     {{#if(d.payment_status == 0 && d.refund_status < 2){}}
-    <a class="layui-btn layui-btn-sm margin-top-0 layui-disabled">不能取消</a>
+    <!--<a class="layui-btn layui-btn-sm ta-mt-0 layui-disabled">不能取消</a>-->
     {{#}else if(d.refund_status){}}
-    <a class="layui-btn layui-btn-sm margin-top-0 layui-disabled">已经取消</a>
+    <a class="layui-btn layui-btn-sm ta-mt-0 layui-disabled">已经退款</a>
+    {{#}else if(d.channel_type === 'voucher'){}}
+    <a class="layui-btn layui-btn-sm ta-mt-0 layui-btn-danger" data-confirm="确认要取消审核吗？" data-load="{:url('cancel')}" data-value="code#{{d.code}}">取消审核</a>
     {{#}else{}}
-    <a class="layui-btn layui-btn-sm margin-top-0 layui-btn-danger" data-confirm="确认要取消支付吗？" data-load="{:url('cancel')}" data-value="code#{{d.code}}">取消支付</a>
+    <!-- <a class="layui-btn layui-btn-sm ta-mt-0 layui-btn-danger" data-confirm="确认要取消支付吗？" data-load="{:url('cancel')}" data-value="code#{{d.code}}">取消支付</a> -->
     {{#}}}
     <br>
     <!-- {/if} -->
@@ -119,14 +118,15 @@
     {{#if(d.audit_status === 1){}}
     <a class="layui-btn layui-btn-sm" data-modal="{:url('audit')}" data-value="id#{{d.id}}" data-title="支付凭证审核">凭证审核</a>
     {{#}else if(d.audit_status === 0){}}
-    <a class="layui-btn layui-btn-sm layui-disabled">已经拒绝</a>
+    <!-- <a class="layui-btn layui-btn-sm layui-disabled">已经拒绝</a>-->
     {{#}else if(d.audit_status === 2){}}
-    <a class="layui-btn layui-btn-sm layui-disabled">已经通过</a>
+    <!-- <a class="layui-btn layui-btn-sm layui-disabled">已经通过</a>-->
     {{#}}}
 
     {{#}else{}}
-    <a class="layui-btn layui-btn-sm layui-disabled">无需操作</a>
+    <!-- <a class="layui-btn layui-btn-sm layui-disabled">无需操作</a>-->
     {{#}}}
     <!--{/if}-->
+
 </script>
 {/block}

@@ -57,6 +57,11 @@ class PluginPaymentRefund extends Abs
         return format_datetime($value);
     }
 
+    /**
+     * 格式化输入时间
+     * @param mixed $value
+     * @return string
+     */
     public function setRefundTimeAttr($value): string
     {
         return $this->setCreateTimeAttr($value);

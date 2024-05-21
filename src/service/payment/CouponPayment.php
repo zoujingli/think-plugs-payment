@@ -19,26 +19,26 @@ declare (strict_types=1);
 namespace plugin\payment\service\payment;
 
 use plugin\account\service\contract\AccountInterface;
+use plugin\payment\model\PluginPaymentRecord;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\contract\PaymentResponse;
 use plugin\payment\service\contract\PaymentUsageTrait;
 use plugin\payment\service\Payment;
 use think\admin\Exception;
-use think\admin\extend\CodeExtend;
 use think\Response;
 
 /**
- * 空支付支付方式
- * @class EmptyPayment
+ * 用户优惠券抵扣
+ * @class CouponPayment
  * @package plugin\payment\service\payment
  */
-class EmptyPayment implements PaymentInterface
+class CouponPayment implements PaymentInterface
 {
     use PaymentUsageTrait;
 
     /**
      * 初始化支付配置
-     * @return PaymentInterface
+     * @return $this
      */
     public function init(): PaymentInterface
     {
@@ -46,35 +46,7 @@ class EmptyPayment implements PaymentInterface
     }
 
     /**
-     * 创建支付订单
-     * @param AccountInterface $account 支付账号
-     * @param string $orderNo 交易订单单号
-     * @param string $orderTitle 交易订单标题
-     * @param string $orderAmount 订单支付金额（元）
-     * @param string $payAmount 本次交易金额
-     * @param string $payRemark 交易订单描述
-     * @param string $payReturn 支付回跳地址
-     * @param string $payImages 支付凭证图片
-     * @param string $payCoupon 优惠券编号
-     * @return PaymentResponse
-     * @throws \think\admin\Exception
-     */
-    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = '', string $payCoupon = ''): PaymentResponse
-    {
-        try {
-            [$payCode] = [Payment::withPaymentCode(), $this->withUserUnid($account)];
-            $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount);
-            $data = $this->updateAction($payCode, CodeExtend::uniqidNumber(18, 'EMT'), $payAmount, '无需支付');
-            return $this->res->set(true, "订单无需支付！", $data);
-        } catch (Exception $exception) {
-            throw $exception;
-        } catch (\Exception $exception) {
-            throw new Exception($exception->getMessage(), $exception->getCode());
-        }
-    }
-
-    /**
-     * 订单主动查询
+     * 订单信息查询
      * @param string $pcode
      * @return array
      */
@@ -106,9 +78,49 @@ class EmptyPayment implements PaymentInterface
     public function refund(string $pcode, string $amount, string $reason = '', ?string &$rcode = null): array
     {
         try {
-            if (floatval($amount) <= 0) return [1, '无需退款！'];
+            // 记录并退回
             static::syncRefund($pcode, $rcode, $amount, $reason);
             return [1, '发起退款成功！'];
+        } catch (\Exception $exception) {
+            throw new Exception($exception->getMessage(), $exception->getCode());
+        }
+    }
+
+    /**
+     * 创建支付订单
+     * @param AccountInterface $account 支付账号
+     * @param string $orderNo 交易订单单号
+     * @param string $orderTitle 交易订单标题
+     * @param string $orderAmount 订单支付金额（元）
+     * @param string $payAmount 本次交易金额
+     * @param string $payRemark 交易订单描述
+     * @param string $payReturn 支付回跳地址
+     * @param string $payImages 支付凭证图片
+     * @param string $payCoupon 优惠券编号
+     * @return PaymentResponse
+     * @throws \think\admin\Exception
+     */
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = '', string $payCoupon = ''): PaymentResponse
+    {
+        try {
+            // 检查优惠券是否已使用
+            if (empty($payCoupon)) throw new Exception("无效优惠券！");
+            $where = ['payment_trade' => $payCoupon, 'refund_status' => 0];
+            $record = PluginPaymentRecord::mk()->where($where)->findOrEmpty();
+            if ($record->isExists() && $record->getAttr('order_no') !== $payCoupon) {
+                throw new Exception("优惠券已使用！");
+            }
+            // 检查剩余金额
+            $this->checkLeaveAmount($orderNo, $payAmount, $orderAmount);
+            // 创建支付行为
+            [$payCode] = [Payment::withPaymentCode(), $this->withUserUnid($account)];
+            $this->createAction($orderNo, $orderTitle, $orderAmount, $payCode, $payAmount, '', $payAmount);
+            // 更新支付行为
+            $data = $this->updateAction($payCode, $payCoupon, $payAmount, '使用优惠券抵扣', $payAmount);
+            // 返回支付结果
+            return $this->res->set(true, '优惠券抵扣完成！', $data);
+        } catch (Exception $exception) {
+            throw $exception;
         } catch (\Exception $exception) {
             throw new Exception($exception->getMessage(), $exception->getCode());
         }

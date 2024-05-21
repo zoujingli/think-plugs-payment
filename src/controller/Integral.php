@@ -45,8 +45,9 @@ class Integral extends Controller
         $this->type = $this->get['type'] ?? 'index';
         PluginPaymentIntegral::mQuery()->layTable(function () {
             $this->title = '用户余额管理';
-            $this->integralTotal = PluginPaymentIntegral::mk()->whereRaw("amount>0")->sum('amount');
-            $this->integralCount = PluginPaymentIntegral::mk()->whereRaw("amount<0")->sum('amount');
+            $map = ['cancel' => 0, 'deleted' => 0];
+            $this->integralTotal = PluginPaymentIntegral::mk()->where($map)->whereRaw("amount>0")->sum('amount');
+            $this->integralCount = PluginPaymentIntegral::mk()->where($map)->whereRaw("amount<0")->sum('amount');
         }, function (QueryHelper $query) {
             $db = PluginAccountUser::mQuery()->like('email|nickname|username|phone#user')->db();
             if ($db->getOptions('where')) $query->whereRaw("unid in {$db->field('id')->buildSql()}");

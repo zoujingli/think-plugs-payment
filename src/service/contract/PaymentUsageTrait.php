@@ -74,9 +74,9 @@ trait PaymentUsageTrait
     /**
      * 支付方式构造函数
      * @param \think\App $app
-     * @param string $code
-     * @param string $type
-     * @param array $params
+     * @param string $code 配置编码
+     * @param string $type 配置类型
+     * @param array $params 配置参数
      * @throws \WeChat\Exceptions\InvalidResponseException
      * @throws \WeChat\Exceptions\LocalCacheException
      */
@@ -86,6 +86,7 @@ trait PaymentUsageTrait
         $this->cfgCode = $code;
         $this->cfgType = $type;
         $this->cfgParams = $params;
+        // 初始化支付响应对象
         $this->res = new PaymentResponse();
         $this->res->channleCode = $code;
         $this->res->channelType = $type;
@@ -98,7 +99,10 @@ trait PaymentUsageTrait
      */
     public function config(): array
     {
-        return $this->config;
+        return array_merge($this->config, [
+            'channel_type' => $this->cfgType,
+            'channel_code' => $this->cfgCode
+        ]);
     }
 
     /**
@@ -132,12 +136,11 @@ trait PaymentUsageTrait
     {
         // 检查未审核的记录
         $map = ['order_no' => $orderNo, 'audit_status' => 1];
-        $find = PluginPaymentRecord::mk()->where($map)->findOrEmpty();
-        if ($find->isExists()) throw new Exception('凭证待审核！', 0);
-
+        $model = PluginPaymentRecord::mk()->where($map)->findOrEmpty();
+        if ($model->isExists()) throw new Exception('凭证待审核！', 0);
         // 检查支付金额是否超出
-        if (floatval($payAmount) + Payment::paidAmount($orderNo) > floatval($orderAmount)) {
-            throw new Exception("支付超出订单金额！");
+        if (round(floatval($payAmount) + Payment::paidAmount($orderNo, true), 2) > floatval($orderAmount)) {
+            throw new Exception("支付金额溢出！");
         }
         return floatval($payAmount);
     }
@@ -159,16 +162,16 @@ trait PaymentUsageTrait
     {
         // 检查是否已经支付
         $map = ['order_no' => $orderNo, 'payment_status' => 1];
-        $total = PluginPaymentRecord::mk()->where($map)->sum('payment_amount');
+        $total = Payment::paidAmount($orderNo, true);
         if ($total >= floatval($orderAmount) && $orderAmount > 0) {
             throw new Exception("已经完成支付！", 1);
         }
-        if ($total + floatval($payAmount) > floatval($orderAmount)) {
+        if (round($total + floatval($payAmount), 2) > floatval($orderAmount)) {
             throw new Exception('支付大于金额！', 0);
         }
         $map['code'] = $payCode;
         if (($model = PluginPaymentRecord::mk()->where($map)->findOrEmpty())->isExists()) {
-            throw new Exception("已经完成支付！", 1);
+            throw new Exception("已经完成支付2", 1);
         }
         // 写入订单支付行为
         $model->save([
@@ -182,8 +185,8 @@ trait PaymentUsageTrait
             'channel_type'   => $this->cfgType,
             'payment_amount' => $this->cfgType === Payment::VOUCHER ? $payAmount : 0.00,
             'payment_images' => $payImages,
-            'audit_status'   => $this->cfgType === Payment::VOUCHER ? 1 : 2,
             'audit_time'     => date("Y-m-d H:i:s"),
+            'audit_status'   => $this->cfgType === Payment::VOUCHER ? 1 : 2,
             'used_payment'   => $payAmount,
             'used_balance'   => $usedBalance,
             'used_integral'  => $usedIntegral,
@@ -198,34 +201,36 @@ trait PaymentUsageTrait
     }
 
     /**
-     * 更新创建支付行为
-     * @param string $payCode 商户订单单号
-     * @param string $payTrade 平台交易单号
-     * @param string $payAmount 实际到账金额
-     * @param string $payRemark 平台支付备注
-     * @return boolean|array
+     * 更新支付行为记录
+     * @param string $pCode 商户订单单号
+     * @param string $pTrade 平台交易单号
+     * @param string $pAmount 实际支付金额
+     * @param string|null $pRemark 平台支付备注
+     * @param string|null $pCoupon 优惠券金额
+     * @param array|null $pNotify 支付通知数据
+     * @return array|false
      */
-    protected function updateAction(string $payCode, string $payTrade, string $payAmount, string $payRemark = '在线支付')
+    protected function updateAction(string $pCode, string $pTrade, string $pAmount, ?string $pRemark = '在线支付', ?string $pCoupon = null, ?array $pNotify = null)
     {
         // 更新支付记录
-        $map = ['code' => $payCode, 'channel_code' => $this->cfgCode, 'channel_type' => $this->cfgType];
+        $map = ['code' => $pCode, 'channel_code' => $this->cfgCode, 'channel_type' => $this->cfgType];
         if (($model = PluginPaymentRecord::mk()->where($map)->findOrEmpty())->isEmpty()) return false;
-
-        // 更新支付行为
-        $model->save([
-            'code'           => $payCode,
+        $data = [
+            'code'           => $pCode,
             'channel_code'   => $this->cfgCode,
             'channel_type'   => $this->cfgType,
             'payment_time'   => date('Y-m-d H:i:s'),
-            'payment_trade'  => $payTrade,
+            'payment_trade'  => $pTrade,
             'payment_status' => 1,
-            'payment_amount' => $payAmount,
-            'payment_remark' => $payRemark,
-        ]);
-
+            'payment_amount' => $pAmount,
+        ];
+        if (is_array($pNotify)) $data['payment_notify'] = $pNotify;
+        if (is_string($pRemark)) $data['payment_remark'] = $pRemark;
+        if (is_numeric($pCoupon)) $data['payment_coupon'] = $pCoupon;
+        // 更新支付行为
+        $model->save($data);
         // 触发支付成功事件
         $this->app->event->trigger('PluginPaymentSuccess', $model->refresh());
-
         // 更新记录状态
         return $model->toArray();
     }
@@ -241,22 +246,22 @@ trait PaymentUsageTrait
      */
     public static function syncRefund(string $pCode, ?string &$rCode = '', ?string $amount = null, string $reason = ''): PluginPaymentRecord
     {
+        // 检查退款单号
+        if ($rCode && PluginPaymentRefund::mk()->where(['code' => $pCode])->findOrEmpty()->isExists()) {
+            throw new Exception("退款单已存在！", 2);
+        }
         // 查询支付记录
-        $record = PluginPaymentRecord::mk()->where(['code' => $pCode])->findOrEmpty();
-        if ($record->isEmpty()) throw new Exception('支付单不存在！');
+        $record = self::withPaymentByRefundTotal($pCode);
         if ($record->getAttr('payment_status') < 1) throw new Exception('支付未完成！');
-        // 统计刷新退款金额
-        $rWhere = ['record_code' => $pCode, 'refund_status' => 1];
-        $rAmount = PluginPaymentRefund::mk()->where($rWhere)->sum('refund_amount');
-        $record->save(['refund_amount' => $rAmount, 'refund_status' => intval($rAmount > 0)]);
         // 是否需要写入退款
         if (!is_numeric($amount)) return $record->refresh();
         // 生成退款记录
         $pType = $record->getAttr('channel_type');
         $extra = ['used_payment' => $amount, 'refund_status' => 0];
-        if (in_array($pType, [Payment::EMPTY, Payment::BALANCE, Payment::INTEGRAL, Payment::VOUCHER])) {
-            if ($pType === Payment::BALANCE) $extra['used_balance'] = $amount;
-            elseif ($pType === Payment::INTEGRAL) {
+        if (in_array($pType, [Payment::EMPTY, Payment::COUPON, Payment::BALANCE, Payment::INTEGRAL, Payment::VOUCHER])) {
+            if ($pType === Payment::BALANCE) {
+                $extra['used_balance'] = $amount;
+            } elseif ($pType === Payment::INTEGRAL) {
                 $extra['used_integral'] = intval(floatval($amount) / floatval($record->getAttr('payment_amount')) * $record->getAttr('used_integral'));
             }
             $extra['refund_trade'] = CodeExtend::uniqidNumber(16, 'RT');
@@ -266,39 +271,59 @@ trait PaymentUsageTrait
             $extra['refund_time'] = date('Y-m-d H:i:s');
         }
         // 支付金额大于0，并需要创建退款记录
-        if ($record->getAttr('payment_amount') > 0 && $rAmount + floatval($amount) <= $record->getAttr('payment_amount')) {
+        if ($record->getAttr('payment_amount') >= round($record->getAttr('refund_amount') + floatval($amount), 2)) {
             PluginPaymentRefund::mk()->save(array_merge([
                 'unid' => $record->getAttr('unid'), 'record_code' => $pCode,
                 'usid' => $record->getAttr('usid'), 'refund_amount' => $amount,
-                'code' => $rCode = Payment::withRefundCode(), 'refund_remark' => $reason,
+                'code' => $rCode = $rCode ?: Payment::withRefundCode(), 'refund_remark' => $reason,
             ], $extra));
-            // 刷新退款金额
-            $rAmount = PluginPaymentRefund::mk()->where($rWhere)->sum('refund_amount');
+            // 同步刷新金额
+            self::withPaymentByRefundTotal($record);
         }
-        // 刷新退款金额
-        $record->save([
-            'refund_status' => 1,
-            'refund_amount' => $rAmount,
-            'audit_time'    => date('Y-m-d H:i:s'),
-            'audit_user'    => AdminService::getUserId(),
-            'audit_status'  => 0,
-            'audit_remark'  => '已申请取消支付，' . ($reason ?: '后台取消！')
-        ]);
+        // 更新模型数据
+        $record->save();
         // 触发取消支付事件
         Library::$sapp->event->trigger('PluginPaymentCancel', $record->refresh());
         return $record;
     }
 
     /**
+     * 获取并同步退款金额的支付单
+     * @param PluginPaymentRecord|string $record
+     * @return \plugin\payment\model\PluginPaymentRecord
+     * @throws \think\admin\Exception
+     */
+    protected static function withPaymentByRefundTotal($record): PluginPaymentRecord
+    {
+        if (is_string($record)) {
+            $record = PluginPaymentRecord::mk()->where(['code' => $record])->findOrEmpty();
+        }
+        if (!$record instanceof PluginPaymentRecord || $record->isEmpty()) {
+            throw new Exception("无效的支付单！");
+        }
+        $total = Payment::totalRefundAmount($record->getAttr('code'));
+        return $record->appendData([
+            'refund_amount'   => $total['amount'],
+            'refund_payment'  => $total['payment'],
+            'refund_balance'  => $total['balance'],
+            'refund_integral' => $total['integral'],
+            'refund_status'   => intval($total['amount'] > 0)
+        ], true);
+    }
+
+    /**
      * 获取账号编号
      * @param AccountInterface $account
+     * @param ?integer $unid 用户账号
+     * @param ?integer $usid 终端账号
      * @return integer
      * @throws \think\admin\Exception
      */
-    protected function withUserUnid(AccountInterface $account): int
+    protected function withUserUnid(AccountInterface $account, ?int &$unid = 0, ?int &$usid = 0): int
     {
-        sysvar('PluginPaymentUsid', intval($this->withUserField($account, 'id')));
-        return sysvar('PluginPaymentUnid', intval($this->withUserField($account, 'unid')));
+        sysvar('PluginPaymentUsid', $usid = intval($this->withUserField($account, 'id')));
+        sysvar('PluginPaymentUnid', $unid = intval($this->withUserField($account, 'unid')));
+        return $unid;
     }
 
     /**

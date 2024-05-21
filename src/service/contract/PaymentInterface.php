@@ -45,9 +45,10 @@ interface PaymentInterface
      * @param string $payRemark 交易订单描述
      * @param string $payReturn 支付回跳地址
      * @param string $payImages 支付凭证图片
+     * @param string $payCoupon 优惠券编号
      * @return PaymentResponse
      */
-    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = ''): PaymentResponse;
+    public function create(AccountInterface $account, string $orderNo, string $orderTitle, string $orderAmount, string $payAmount, string $payRemark = '', string $payReturn = '', string $payImages = '', string $payCoupon = ''): PaymentResponse;
 
     /**
      * 主动查询订单支付
@@ -69,7 +70,8 @@ interface PaymentInterface
      * @param string $pcode 支付单号
      * @param string $amount 退款金额
      * @param string $reason 退款原因
+     * @param ?string $rcode 退款单号
      * @return array [状态, 消息]
      */
-    public function refund(string $pcode, string $amount, string $reason = ''): array;
+    public function refund(string $pcode, string $amount, string $reason = '', ?string &$rcode = null): array;
 }

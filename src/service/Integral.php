@@ -64,22 +64,23 @@ abstract class Integral
         $usable = PluginPaymentIntegral::mk()->where($map)->sum('amount');
         if ($amount < 0 && abs($amount) > $usable) throw new Exception('扣减积分不足！');
 
+        // 积分标准字段
+        $data = ['unid' => $unid, 'code' => $code, 'name' => $name, 'amount' => $amount, 'remark' => $remark];
+
+        // 统计操作前的金额
+        $data['amount_prev'] = $usable;
+        $data['amount_next'] = round($usable + $amount, 2);
+
+        // 锁定状态处理
+        $data['unlock'] = intval($unlock);
+        if ($data['unlock']) $data['unlock_time'] = date('Y-m-d H:i:s');
+
         // 检查编号是否重复
         $map = ['unid' => $unid, 'code' => $code, 'deleted' => 0];
         $model = PluginPaymentIntegral::mk()->where($map)->findOrEmpty();
 
         // 更新或写入积分变更
-        $model->save([
-            'unid'        => $unid,
-            'code'        => $code,
-            'name'        => $name,
-            'amount'      => $amount,
-            'remark'      => $remark,
-            'status'      => 1,
-            'unlock'      => $unlock ? 1 : 0,
-            'unlock_time' => date('Y-m-d H:i:s')
-        ]);
-        if ($model->isExists()) {
+        if ($model->save($data)) {
             self::recount($unid);
             return $model->refresh();
         } else {
@@ -147,7 +148,7 @@ abstract class Integral
         $data['integral_lock'] = $lock;
         $data['integral_used'] = abs($used);
         $data['integral_total'] = $total;
-        $data['integral_usable'] = $total - abs($used);
+        $data['integral_usable'] = round($total - abs($used), 2);
         if ($isUpdate) $user->save(['extra' => array_merge($user->getAttr('extra'), $data)]);
         return ['lock' => $lock, 'used' => abs($used), 'total' => $total, 'usable' => $data['integral_usable']];
     }

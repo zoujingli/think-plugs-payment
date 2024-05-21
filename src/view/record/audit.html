@@ -1,6 +1,6 @@
 <form action="{:sysuri()}" method="post" data-auto="true" class="layui-form layui-card" data-table-id="PaymentRecordTable">
 
-    <div class="layui-card-body padding-left-40">
+    <div class="layui-card-body ta-pl-40">
 
         <div class="layui-row layui-col-space20">
             <div class="layui-col-xs4">
@@ -32,8 +32,8 @@
 
         <div class="layui-form-item">
             <span class="help-label label-required-prev"><b>审核操作类型</b>Audit Status</span>
-            <div class="layui-textarea help-checks">
-                {foreach [ 2=> '审核通过', 1=> '待审核', 0=> '驳回凭证'] as $k => $v}
+            <div class="layui-textarea help-checks ta-pl-10">
+                {foreach ['驳回凭证','等待审核','审核通过',] as $k => $v}
                 {if $k eq $vo.audit_status}
                 <input checked name="status" title="{$v}" type="radio" value='{$k}'>
                 {else}
@@ -51,8 +51,8 @@
         {notempty name='vo.id'}<input name='id' type='hidden' value='{$vo.id}'>{/notempty}
 
         <div class="layui-form-item text-center">
-            <button class="layui-btn" type='submit'>审核</button>
-            <button class="layui-btn layui-btn-danger" data-close data-confirm="确定要取消吗？" type='button'>取消</button>
+            <button class="layui-btn" type='submit'>保存数据</button>
+            <button class="layui-btn layui-btn-danger" data-close data-confirm="确定要取消吗？" type='button'>取消操作</button>
         </div>
     </div>
 </form>
