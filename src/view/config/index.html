@@ -34,7 +34,7 @@
 <script>
     $(function () {
         // 初始化表格组件
-        $('#PaymentTable').layTable({
+        let $table = $('#PaymentTable').layTable({
             even: true, height: 'full',
             sort: {field: 'sort desc,code', type: 'desc'},
             cols: [[
@@ -61,13 +61,10 @@
 
         // 数据状态切换操作
         layui.form.on('switch(StatusSwitch)', function (obj) {
-            var data = {id: obj.value, status: obj.elem.checked > 0 ? 1 : 0};
+            let data = {id: obj.value, status: obj.elem.checked > 0 ? 1 : 0};
             $.form.load("{:url('state')}", data, 'post', function (ret) {
-                if (ret.code < 1) $.msg.error(ret.info, 3, function () {
-                    $('#PaymentTable').trigger('reload');
-                }); else {
-                    $('#PaymentTable').trigger('reload');
-                }
+                let fn = () => $table.trigger('reload');
+                ret.code > 0 ? fn() : $.msg.error(ret.info, 3, fn)
                 return false;
             }, false);
         });
