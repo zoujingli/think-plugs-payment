@@ -26,14 +26,14 @@ use think\admin\helper\QueryHelper;
 use think\exception\HttpResponseException;
 
 /**
- * 用户余额管理
+ * 余额明细管理
  * @class Balance
  * @package plugin\account\controller\user
  */
 class Balance extends Controller
 {
     /**
-     * 用户余额管理
+     * 余额明细管理
      * @auth true
      * @menu true
      * @throws \think\db\exception\DataNotFoundException
@@ -44,7 +44,7 @@ class Balance extends Controller
     {
         $this->type = $this->get['type'] ?? 'index';
         PluginPaymentBalance::mQuery()->layTable(function () {
-            $this->title = '用户余额管理';
+            $this->title = '余额明细管理';
             $map = ['cancel' => 0, 'deleted' => 0];
             $this->balanceTotal = PluginPaymentBalance::mk()->where($map)->whereRaw("amount>0")->sum('amount');
             $this->balanceCount = PluginPaymentBalance::mk()->where($map)->whereRaw("amount<0")->sum('amount');

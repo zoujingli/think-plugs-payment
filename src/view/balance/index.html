@@ -1,7 +1,7 @@
 {extend name='table'}
 
 {block name="content"}
-<div class="think-box-notify sub-strong-blue">
+<div class="think-box-notify sub-strong-blue" type="info">
     <strong>余额统计</strong>：<span>累计充值 <b>{$balanceTotal|number_format}</b> 元，已消费 <b>{$balanceCount|abs|number_format}</b> 元，剩余可用余额 <b>{:number_format($balanceTotal+$balanceCount)}</b> 元。</span>
 </div>
 
@@ -21,7 +21,7 @@
 
 <script>
     $(function () {
-        $('#BalanceTable').layTable({
+        let $table = $('#BalanceTable').layTable({
             even: true, height: 'full',
             sort: {field: 'id', type: 'desc'},
             cols: [[
@@ -65,13 +65,10 @@
 
         // 数据状态切换操作
         layui.form.on('switch(StatusSwitch)', function (obj) {
-            var data = {code: obj.value, cancel: obj.elem.checked > 0 ? 0 : 1};
+            let data = {code: obj.value, cancel: obj.elem.checked > 0 ? 0 : 1};
             $.form.load("{:url('cancel')}", data, 'post', function (ret) {
-                if (ret.code < 1) $.msg.error(ret.info, 3, function () {
-                    $('#BalanceTable').trigger('reload');
-                }); else {
-                    $('#BalanceTable').trigger('reload')
-                }
+                let fn = () => $table.trigger('reload');
+                ret.code > 0 ? fn() : $.msg.error(ret.info, 3, fn)
                 return false;
             }, false);
         });

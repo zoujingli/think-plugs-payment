@@ -1,13 +1,13 @@
 {extend name='table'}
 
 {block name="content"}
-<div class="think-box-notify sub-strong-blue">
-    <strong>余额统计</strong>：<span>累计发放 <b>{$integralTotal|number_format}</b> 积分，已消费 <b>{$integralCount|abs|number_format}</b> 积分，剩余可用 <b>{:number_format($integralTotal+$integralCount)}</b> 积分。</span>
+<div class="think-box-notify sub-strong-blue" type="info">
+    <strong>积分统计</strong>：<span>累计发放 <b>{$integralTotal|number_format}</b> 积分，已消费 <b>{$integralCount|abs|number_format}</b> 积分，剩余可用 <b>{:number_format($integralTotal+$integralCount)}</b> 积分。</span>
 </div>
 
 <div class="layui-tab layui-tab-card">
     <ul class="layui-tab-title">
-        {foreach ['index'=>'余额管理','recycle'=>'回 收 站'] as $k=>$v}{if isset($type) and $type eq $k}
+        {foreach ['index'=>'积分管理','recycle'=>'回 收 站'] as $k=>$v}{if isset($type) and $type eq $k}
         <li data-open="{:url('index')}?type={$k}" class="layui-this">{$v}</li>
         {else}
         <li data-open="{:url('index')}?type={$k}">{$v}</li>
@@ -21,7 +21,7 @@
 
 <script>
     $(function () {
-        $('#IntegralTable').layTable({
+        let $table = $('#IntegralTable').layTable({
             even: true, height: 'full',
             sort: {field: 'id', type: 'desc'},
             cols: [[
@@ -67,11 +67,8 @@
         layui.form.on('switch(StatusSwitch)', function (obj) {
             let data = {code: obj.value, cancel: obj.elem.checked > 0 ? 0 : 1};
             $.form.load("{:url('cancel')}", data, 'post', function (ret) {
-                if (ret.code < 1) $.msg.error(ret.info, 3, function () {
-                    $('#IntegralTable').trigger('reload');
-                }); else {
-                    $('#IntegralTable').trigger('reload')
-                }
+                let fn = () => $table.trigger('reload');
+                ret.code > 0 ? fn() : $.msg.error(ret.info, 3, fn)
                 return false;
             }, false);
         });

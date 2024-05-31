@@ -25,6 +25,7 @@ use plugin\payment\model\PluginPaymentRecord;
 use plugin\payment\model\PluginPaymentRefund;
 use plugin\payment\service\contract\PaymentInterface;
 use plugin\payment\service\contract\PaymentResponse;
+use plugin\payment\service\payment\AliPayment;
 use plugin\payment\service\payment\BalancePayment;
 use plugin\payment\service\payment\CouponPayment;
 use plugin\payment\service\payment\EmptyPayment;

@@ -26,14 +26,14 @@ use think\admin\helper\QueryHelper;
 use think\exception\HttpResponseException;
 
 /**
- * 用户积分管理
+ * 积分明细管理
  * @class Integral
  * @package plugin\account\controller\user
  */
 class Integral extends Controller
 {
     /**
-     * 用户余额管理
+     * 积分明细管理
      * @auth true
      * @menu true
      * @throws \think\db\exception\DataNotFoundException
@@ -44,7 +44,7 @@ class Integral extends Controller
     {
         $this->type = $this->get['type'] ?? 'index';
         PluginPaymentIntegral::mQuery()->layTable(function () {
-            $this->title = '用户余额管理';
+            $this->title = '积分明细管理';
             $map = ['cancel' => 0, 'deleted' => 0];
             $this->integralTotal = PluginPaymentIntegral::mk()->where($map)->whereRaw("amount>0")->sum('amount');
             $this->integralCount = PluginPaymentIntegral::mk()->where($map)->whereRaw("amount<0")->sum('amount');
