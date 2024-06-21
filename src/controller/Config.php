@@ -87,7 +87,8 @@ class Config extends Controller
             $data['content'] = $data['content'] ?? [];
             [$this->payments, $types] = [[], Account::types(1)];
             foreach (Payment::types(1) as $k => $v) {
-                if (in_array($k, ['balance', 'integral'])) {
+                // 屏蔽内置支付方式
+                if (in_array($k, [Payment::BALANCE, Payment::INTEGRAL, Payment::COUPON])) {
                     continue;
                 }
                 $allow = [];
